@@ -125,6 +125,88 @@ export type Database = {
           },
         ]
       }
+      machine_manuals: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_url: string
+          id: string
+          machine_id: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_url: string
+          id?: string
+          machine_id: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_url?: string
+          id?: string
+          machine_id?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "machine_manuals_machine_id_fkey"
+            columns: ["machine_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      machine_visuals: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string
+          is_approved: boolean
+          machine_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url: string
+          is_approved?: boolean
+          machine_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string
+          is_approved?: boolean
+          machine_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "machine_visuals_machine_id_fkey"
+            columns: ["machine_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       machine_warnings: {
         Row: {
           approved_at: string | null
@@ -221,6 +303,7 @@ export type Database = {
         Row: {
           created_at: string
           employee_id: string | null
+          employer_id: string | null
           full_name: string
           id: string
           updated_at: string
@@ -229,6 +312,7 @@ export type Database = {
         Insert: {
           created_at?: string
           employee_id?: string | null
+          employer_id?: string | null
           full_name: string
           id?: string
           updated_at?: string
@@ -237,6 +321,7 @@ export type Database = {
         Update: {
           created_at?: string
           employee_id?: string | null
+          employer_id?: string | null
           full_name?: string
           id?: string
           updated_at?: string
@@ -431,6 +516,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_employer_id: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
