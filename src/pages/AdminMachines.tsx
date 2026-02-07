@@ -22,6 +22,10 @@ import {
   Tractor,
   Settings,
   BookOpen,
+  Upload,
+  X,
+  Loader2,
+  Download,
 } from "lucide-react";
 import {
   Dialog,
@@ -44,6 +48,12 @@ interface Machine {
   question_count: number;
 }
 
+interface MachineManual {
+  id: string;
+  file_name: string;
+  file_url: string;
+}
+
 interface SafetyLog {
   id: string;
   employee_id: string;
@@ -52,6 +62,14 @@ interface SafetyLog {
   category: string | null;
   profiles?: {
     full_name: string;
+  };
+}
+
+interface MachineAccess {
+  user_id: string;
+  profiles?: {
+    full_name: string;
+    employee_id: string | null;
   };
 }
 
@@ -81,7 +99,9 @@ export default function AdminMachines() {
   const [employeesMachine, setEmployeesMachine] = useState<Machine | null>(null);
   const [machineLogs, setMachineLogs] = useState<SafetyLog[]>([]);
   const [machineAccess, setMachineAccess] = useState<MachineAccess[]>([]);
+  const [machineManuals, setMachineManuals] = useState<MachineManual[]>([]);
   const [saving, setSaving] = useState(false);
+  const [uploadingManual, setUploadingManual] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
@@ -191,6 +211,87 @@ export default function AdminMachines() {
     await Promise.all([fetchMachineLogs(machine.id), fetchMachineAccess(machine.id)]);
   };
 
+  const fetchMachineManuals = async (machineId: string) => {
+    const { data } = await supabase
+      .from("machine_manuals")
+      .select("*")
+      .eq("machine_id", machineId)
+      .order("created_at", { ascending: false });
+    
+    if (data) {
+      setMachineManuals(data);
+    }
+  };
+
+  const handleEditMachine = async (machine: Machine) => {
+    setEditingMachine(machine);
+    await fetchMachineManuals(machine.id);
+  };
+
+  const handleUploadManual = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files?.[0] || !editingMachine || !user) return;
+
+    const file = e.target.files[0];
+    setUploadingManual(true);
+
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${editingMachine.id}/${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("machine-manuals")
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from("machine-manuals")
+        .getPublicUrl(fileName);
+
+      // Save to database
+      const { error: insertError } = await supabase
+        .from("machine_manuals")
+        .insert({
+          machine_id: editingMachine.id,
+          file_name: file.name,
+          file_url: urlData.publicUrl,
+          uploaded_by: user.id,
+        });
+
+      if (insertError) throw insertError;
+
+      toast({ title: "Uploaded", description: "Manual uploaded successfully" });
+      fetchMachineManuals(editingMachine.id);
+    } catch (error: any) {
+      console.error("Upload error:", error);
+      toast({
+        title: "Upload Failed",
+        description: error.message || "Failed to upload manual",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingManual(false);
+    }
+  };
+
+  const handleDeleteManual = async (manualId: string) => {
+    if (!confirm("Delete this manual?")) return;
+
+    const { error } = await supabase
+      .from("machine_manuals")
+      .delete()
+      .eq("id", manualId);
+
+    if (error) {
+      toast({ title: "Error", description: "Failed to delete manual", variant: "destructive" });
+    } else {
+      toast({ title: "Deleted", description: "Manual removed" });
+      if (editingMachine) {
+        fetchMachineManuals(editingMachine.id);
+      }
+    }
+  };
+
   const handleSave = async () => {
     if (!editingMachine) return;
     setSaving(true);
@@ -273,7 +374,36 @@ export default function AdminMachines() {
   };
 
   const getQRUrl = (machineId: string) => {
-    return `${window.location.origin}/inspect/${machineId}`;
+    return `${window.location.origin}/learn/${machineId}`;
+  };
+
+  const handleDownloadQR = (machine: Machine) => {
+    const svg = document.getElementById(`qr-${machine.id}`);
+    if (!svg) return;
+
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    const img = new Image();
+    
+    img.onload = () => {
+      canvas.width = 400;
+      canvas.height = 400;
+      ctx?.fillRect(0, 0, canvas.width, canvas.height);
+      if (ctx) {
+        ctx.fillStyle = "white";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+      ctx?.drawImage(img, 50, 50, 300, 300);
+      
+      const pngFile = canvas.toDataURL("image/png");
+      const downloadLink = document.createElement("a");
+      downloadLink.download = `${machine.name.replace(/\s+/g, "-")}-QR.png`;
+      downloadLink.href = pngFile;
+      downloadLink.click();
+    };
+    
+    img.src = "data:image/svg+xml;base64," + btoa(svgData);
   };
 
   if (loading) {
@@ -366,7 +496,7 @@ export default function AdminMachines() {
                     <Button
                       variant="outline"
                       size="icon"
-                      onClick={() => setEditingMachine(machine)}
+                      onClick={() => handleEditMachine(machine)}
                       title="Edit"
                     >
                       <Pencil className="h-5 w-5" />
@@ -475,6 +605,76 @@ export default function AdminMachines() {
                     }
                     className="min-h-[80px]"
                   />
+                </div>
+
+                {/* Manuals Section */}
+                <div className="space-y-2 pt-4 border-t">
+                  <Label className="text-lg flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Machine Manuals
+                  </Label>
+                  
+                  {machineManuals.length > 0 && (
+                    <div className="space-y-2 mb-4">
+                      {machineManuals.map((manual) => (
+                        <div
+                          key={manual.id}
+                          className="flex items-center justify-between p-3 bg-muted rounded-sm"
+                        >
+                          <span className="text-sm font-medium truncate flex-1">
+                            {manual.file_name}
+                          </span>
+                          <div className="flex gap-2 ml-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => window.open(manual.file_url, "_blank")}
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteManual(manual.id)}
+                              className="text-destructive"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <label>
+                    <input
+                      type="file"
+                      accept=".pdf,.doc,.docx"
+                      onChange={handleUploadManual}
+                      className="hidden"
+                      disabled={uploadingManual}
+                    />
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      disabled={uploadingManual}
+                      asChild
+                    >
+                      <span>
+                        {uploadingManual ? (
+                          <>
+                            <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                            Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="h-5 w-5 mr-2" />
+                            Upload Manual
+                          </>
+                        )}
+                      </span>
+                    </Button>
+                  </label>
                 </div>
 
                 <div className="flex gap-4 pt-4">
@@ -672,19 +872,27 @@ export default function AdminMachines() {
 
             {qrMachine && (
               <div className="mt-4">
-                <div className="qr-container mx-auto">
+                <div className="qr-container mx-auto bg-white p-4 rounded-sm">
                   <QRCodeSVG
+                    id={`qr-${qrMachine.id}`}
                     value={getQRUrl(qrMachine.id)}
                     size={200}
                     level="H"
                   />
                 </div>
                 <p className="text-sm text-muted-foreground mt-4">
-                  Scan to start safety inspection for this machine
+                  Scan to open the Learning Environment for this machine
                 </p>
                 <p className="text-xs text-muted-foreground mt-2 break-all">
                   {getQRUrl(qrMachine.id)}
                 </p>
+                <Button
+                  onClick={() => handleDownloadQR(qrMachine)}
+                  className="mt-4 w-full"
+                  variant="outline"
+                >
+                  Download QR Code
+                </Button>
               </div>
             )}
           </DialogContent>

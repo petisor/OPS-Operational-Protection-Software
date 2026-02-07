@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import OpenAI from "https://esm.sh/openai";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { machineId, machineName, instructions, userPrompt } = await req.json();
+    const { machineId, machineName, instructions, userPrompt, isAdmin } = await req.json();
 
     if (!machineId || !machineName) {
       return new Response(JSON.stringify({ error: "Machine ID and name are required" }), {
@@ -21,48 +20,71 @@ serve(async (req) => {
       });
     }
 
-    const AZERION_API_KEY = Deno.env.get("AZERION_API_KEY");
-    if (!AZERION_API_KEY) {
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
       return new Response(JSON.stringify({ error: "API key not configured" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const client = new OpenAI({
-      baseURL: "https://api.azerion.ai/v1",
-      apiKey: AZERION_API_KEY,
-    });
-
     const instructionContext = instructions
       ? instructions.map((i: { title: string; content: string }) => `${i.title}: ${i.content}`).join("\n")
       : "";
 
-    const prompt = userPrompt
-      ? `Based on these machine instructions: ${instructionContext}\n\nUser request: ${userPrompt}\n\nProvide a detailed technical description and safety analysis for the ${machineName}. Use the photos provided in the manuals`
-      : `Provide a detailed technical overview and safety guidelines for the ${machineName} based on these instructions: ${instructionContext}. Use the photos from the manual if possible.`;
+    const imagePrompt = userPrompt
+      ? `Create a technical illustration for industrial safety: ${userPrompt}. Machine: ${machineName}. Context: ${instructionContext.slice(0, 500)}`
+      : `Create a detailed technical safety illustration showing the ${machineName} with safety labels, warning zones, and proper operating positions. Industrial style, clear and educational.`;
 
-    const response = await client.chat.completions.create({
-      model: "gemini-3-pro-preview",
-      messages: [
-        { role: "system", content: "You are a professional industrial safety assistant." },
-        { role: "user", content: prompt },
-      ],
-      max_tokens: 1024,
-      temperature: 0.7,
-      stream: false,
+    // Generate image using Lovable AI gateway
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash-image",
+        messages: [
+          {
+            role: "user",
+            content: imagePrompt,
+          },
+        ],
+        modalities: ["image", "text"],
+      }),
     });
 
-    const textResponse = response.choices[0].message.content;
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Image generation error:", errorText);
+      return new Response(JSON.stringify({ error: "Failed to generate image" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const data = await response.json();
+    const message = data.choices?.[0]?.message;
+    const imageUrl = message?.images?.[0]?.image_url?.url;
+    const description = message?.content || "";
+
+    if (!imageUrl) {
+      return new Response(JSON.stringify({ error: "No image was generated" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     return new Response(
       JSON.stringify({
-        description: textResponse,
+        imageUrl,
+        description,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error) {
-    console.error("Error generating response:", error);
+    console.error("Error generating visual:", error);
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
