@@ -8,15 +8,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { MachineSearch } from "@/components/MachineSearch";
 import {
   ArrowLeft,
   Pencil,
   Trash2,
   QrCode,
-  X,
+  Calendar,
+  Users,
+  FileText,
   Truck,
   Construction,
   Tractor,
+  Settings,
 } from "lucide-react";
 import {
   Dialog,
@@ -25,6 +29,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { QRCodeSVG } from "qrcode.react";
+import { format } from "date-fns";
 
 interface Machine {
   id: string;
@@ -34,6 +39,27 @@ interface Machine {
   common_injury: string;
   safety_warning: string;
   manual_url: string | null;
+  recertification_days: number;
+  question_count: number;
+}
+
+interface SafetyLog {
+  id: string;
+  employee_id: string;
+  timestamp: string;
+  status: string;
+  category: string | null;
+  profiles?: {
+    full_name: string;
+  };
+}
+
+interface MachineAccess {
+  user_id: string;
+  profiles?: {
+    full_name: string;
+    employee_id: string | null;
+  };
 }
 
 const iconOptions = [
@@ -47,9 +73,15 @@ export default function AdminMachines() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [machines, setMachines] = useState<Machine[]>([]);
+  const [filteredMachines, setFilteredMachines] = useState<Machine[]>([]);
   const [editingMachine, setEditingMachine] = useState<Machine | null>(null);
+  const [settingsMachine, setSettingsMachine] = useState<Machine | null>(null);
   const [qrMachine, setQrMachine] = useState<Machine | null>(null);
+  const [employeesMachine, setEmployeesMachine] = useState<Machine | null>(null);
+  const [machineLogs, setMachineLogs] = useState<SafetyLog[]>([]);
+  const [machineAccess, setMachineAccess] = useState<MachineAccess[]>([]);
   const [saving, setSaving] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     if (!loading) {
@@ -63,6 +95,21 @@ export default function AdminMachines() {
     }
   }, [user, isAdmin, loading, navigate]);
 
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredMachines(machines);
+    } else {
+      const query = searchQuery.toLowerCase();
+      setFilteredMachines(
+        machines.filter(
+          (m) =>
+            m.name.toLowerCase().includes(query) ||
+            m.id.toLowerCase().includes(query)
+        )
+      );
+    }
+  }, [searchQuery, machines]);
+
   const fetchMachines = async () => {
     const { data, error } = await supabase
       .from("machines")
@@ -71,7 +118,76 @@ export default function AdminMachines() {
 
     if (!error && data) {
       setMachines(data);
+      setFilteredMachines(data);
     }
+  };
+
+  const fetchMachineLogs = async (machineId: string) => {
+    // Fetch logs first
+    const { data: logs, error } = await supabase
+      .from("safety_logs")
+      .select("*")
+      .eq("machine_id", machineId)
+      .order("timestamp", { ascending: false })
+      .limit(50);
+
+    if (error || !logs) {
+      setMachineLogs([]);
+      return;
+    }
+
+    // Fetch profiles for these employees
+    const employeeIds = [...new Set(logs.map((log) => log.employee_id))];
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("user_id, full_name")
+      .in("user_id", employeeIds);
+
+    const profileMap = new Map(profiles?.map((p) => [p.user_id, p.full_name]) || []);
+
+    const logsWithProfiles = logs.map((log) => ({
+      ...log,
+      profiles: { full_name: profileMap.get(log.employee_id) || "Unknown" },
+    }));
+
+    setMachineLogs(logsWithProfiles as SafetyLog[]);
+  };
+
+  const fetchMachineAccess = async (machineId: string) => {
+    // Fetch access records
+    const { data: access, error } = await supabase
+      .from("machine_access")
+      .select("user_id")
+      .eq("machine_id", machineId);
+
+    if (error || !access) {
+      setMachineAccess([]);
+      return;
+    }
+
+    // Fetch profiles for these users
+    const userIds = access.map((a) => a.user_id);
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("user_id, full_name, employee_id")
+      .in("user_id", userIds);
+
+    const accessWithProfiles = access.map((a) => {
+      const profile = profiles?.find((p) => p.user_id === a.user_id);
+      return {
+        user_id: a.user_id,
+        profiles: profile
+          ? { full_name: profile.full_name, employee_id: profile.employee_id }
+          : undefined,
+      };
+    });
+
+    setMachineAccess(accessWithProfiles as MachineAccess[]);
+  };
+
+  const handleViewEmployees = async (machine: Machine) => {
+    setEmployeesMachine(machine);
+    await Promise.all([fetchMachineLogs(machine.id), fetchMachineAccess(machine.id)]);
   };
 
   const handleSave = async () => {
@@ -106,8 +222,37 @@ export default function AdminMachines() {
     setSaving(false);
   };
 
+  const handleSaveSettings = async () => {
+    if (!settingsMachine) return;
+    setSaving(true);
+
+    const { error } = await supabase
+      .from("machines")
+      .update({
+        recertification_days: settingsMachine.recertification_days,
+        question_count: settingsMachine.question_count,
+      })
+      .eq("id", settingsMachine.id);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update settings",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Success",
+        description: "Settings updated successfully",
+      });
+      setSettingsMachine(null);
+      fetchMachines();
+    }
+    setSaving(false);
+  };
+
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this machine?")) return;
+    if (!confirm("Are you sure you want to delete this machine? This action cannot be undone.")) return;
 
     const { error } = await supabase.from("machines").delete().eq("id", id);
 
@@ -156,9 +301,12 @@ export default function AdminMachines() {
           <h1 className="text-3xl md:text-4xl font-black">Manage Machines</h1>
         </div>
 
+        {/* Search */}
+        <MachineSearch onSearch={setSearchQuery} />
+
         {/* Machine List */}
         <div className="space-y-4">
-          {machines.map((machine) => {
+          {filteredMachines.map((machine) => {
             const IconComponent =
               iconOptions.find((i) => i.value === machine.icon)?.icon || Truck;
 
@@ -171,27 +319,46 @@ export default function AdminMachines() {
                     </div>
                     <div>
                       <h3 className="text-xl font-bold">{machine.name}</h3>
-                      <p className="text-muted-foreground">
+                      <p className="text-muted-foreground text-sm">
                         {machine.description}
                       </p>
-                      <p className="text-sm text-destructive mt-1">
-                        Common injury: {machine.common_injury}
-                      </p>
+                      <div className="flex gap-4 mt-1 text-sm text-muted-foreground">
+                        <span>Recert: {machine.recertification_days} days</span>
+                        <span>Questions: {machine.question_count}</span>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap">
                     <Button
                       variant="outline"
                       size="icon"
                       onClick={() => setQrMachine(machine)}
+                      title="QR Code"
                     >
                       <QrCode className="h-5 w-5" />
                     </Button>
                     <Button
                       variant="outline"
                       size="icon"
+                      onClick={() => handleViewEmployees(machine)}
+                      title="View Employees"
+                    >
+                      <Users className="h-5 w-5" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setSettingsMachine(machine)}
+                      title="Settings"
+                    >
+                      <Settings className="h-5 w-5" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
                       onClick={() => setEditingMachine(machine)}
+                      title="Edit"
                     >
                       <Pencil className="h-5 w-5" />
                     </Button>
@@ -199,6 +366,7 @@ export default function AdminMachines() {
                       variant="destructive"
                       size="icon"
                       onClick={() => handleDelete(machine.id)}
+                      title="Delete"
                     >
                       <Trash2 className="h-5 w-5" />
                     </Button>
@@ -214,7 +382,7 @@ export default function AdminMachines() {
           open={!!editingMachine}
           onOpenChange={() => setEditingMachine(null)}
         >
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-2xl">Edit Machine</DialogTitle>
             </DialogHeader>
@@ -315,6 +483,169 @@ export default function AdminMachines() {
                   >
                     {saving ? "Saving..." : "Save Changes"}
                   </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Settings Dialog */}
+        <Dialog
+          open={!!settingsMachine}
+          onOpenChange={() => setSettingsMachine(null)}
+        >
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-2xl">
+                {settingsMachine?.name} Settings
+              </DialogTitle>
+            </DialogHeader>
+
+            {settingsMachine && (
+              <div className="space-y-6 mt-4">
+                <div className="space-y-2">
+                  <Label className="text-lg flex items-center gap-2">
+                    <Calendar className="h-5 w-5" />
+                    Recertification Period (Days)
+                  </Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={365}
+                    value={settingsMachine.recertification_days}
+                    onChange={(e) =>
+                      setSettingsMachine({
+                        ...settingsMachine,
+                        recertification_days: parseInt(e.target.value) || 30,
+                      })
+                    }
+                    className="input-industrial"
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    How often employees must redo the safety check
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-lg flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Questions per Quiz
+                  </Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={50}
+                    value={settingsMachine.question_count}
+                    onChange={(e) =>
+                      setSettingsMachine({
+                        ...settingsMachine,
+                        question_count: parseInt(e.target.value) || 5,
+                      })
+                    }
+                    className="input-industrial"
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Number of questions shown per quiz session
+                  </p>
+                </div>
+
+                <div className="flex gap-4 pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => setSettingsMachine(null)}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleSaveSettings}
+                    disabled={saving}
+                    className="flex-1"
+                  >
+                    {saving ? "Saving..." : "Save Settings"}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Employees Dialog */}
+        <Dialog
+          open={!!employeesMachine}
+          onOpenChange={() => setEmployeesMachine(null)}
+        >
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-2xl">
+                {employeesMachine?.name} - Employees
+              </DialogTitle>
+            </DialogHeader>
+
+            {employeesMachine && (
+              <div className="space-y-6 mt-4">
+                {/* Assigned Employees */}
+                <div>
+                  <h3 className="font-bold text-lg mb-3">Assigned Employees ({machineAccess.length})</h3>
+                  {machineAccess.length > 0 ? (
+                    <div className="space-y-2">
+                      {machineAccess.map((access) => (
+                        <div key={access.user_id} className="card-industrial p-3 flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                            <Users className="h-5 w-5" />
+                          </div>
+                          <div>
+                            <p className="font-bold">{access.profiles?.full_name || "Unknown"}</p>
+                            {access.profiles?.employee_id && (
+                              <p className="text-sm text-muted-foreground">
+                                ID: {access.profiles.employee_id}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground">No employees assigned</p>
+                  )}
+                </div>
+
+                {/* Activity Log */}
+                <div>
+                  <h3 className="font-bold text-lg mb-3">Recent Activity</h3>
+                  {machineLogs.length > 0 ? (
+                    <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                      {machineLogs.map((log) => (
+                        <div
+                          key={log.id}
+                          className="card-industrial p-3 flex items-center justify-between"
+                        >
+                          <div>
+                            <p className="font-bold">{log.profiles?.full_name || "Unknown"}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {format(new Date(log.timestamp), "MMM d, yyyy 'at' h:mm a")}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {log.category && (
+                              <span className="text-xs bg-muted px-2 py-1 rounded">
+                                {log.category}
+                              </span>
+                            )}
+                            <span
+                              className={`text-sm font-bold ${
+                                log.status === "safe" ? "text-success" : "text-destructive"
+                              }`}
+                            >
+                              {log.status.toUpperCase()}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground">No activity logs</p>
+                  )}
                 </div>
               </div>
             )}

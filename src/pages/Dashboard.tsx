@@ -6,11 +6,14 @@ import { SafetyWarningModal } from "@/components/SafetyWarningModal";
 import { SafetyQuiz } from "@/components/SafetyQuiz";
 import { SafetySuccess } from "@/components/SafetySuccess";
 import { DoNotOperate } from "@/components/DoNotOperate";
+import { MachineSearch } from "@/components/MachineSearch";
+import { QuizCategorySelect } from "@/components/QuizCategorySelect";
+import { WarningBanner } from "@/components/WarningBanner";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
-import { Calendar, Clock, ArrowRight } from "lucide-react";
+import { Calendar, Clock, ArrowRight, ArrowLeft } from "lucide-react";
 
 interface Machine {
   id: string;
@@ -19,24 +22,31 @@ interface Machine {
   icon: string;
   common_injury: string;
   safety_warning: string;
+  question_count: number;
 }
 
 interface Question {
   id: string;
   question: string;
   order_index: number;
+  correct_answer: boolean;
+  category: "safety" | "usage";
 }
 
-type QuizState = "select" | "warning" | "quiz" | "success" | "failed";
+type QuizState = "select" | "category" | "warning" | "quiz" | "success" | "failed";
+type QuizCategory = "safety" | "usage";
 
 export default function Dashboard() {
   const { user, profile, isAdmin, loading } = useAuth();
   const navigate = useNavigate();
   const [machines, setMachines] = useState<Machine[]>([]);
+  const [filteredMachines, setFilteredMachines] = useState<Machine[]>([]);
   const [selectedMachine, setSelectedMachine] = useState<Machine | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<QuizCategory | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [quizState, setQuizState] = useState<QuizState>("select");
   const [timestamp, setTimestamp] = useState<Date>(new Date());
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     if (!loading && !user) {
@@ -48,6 +58,22 @@ export default function Dashboard() {
     fetchMachines();
   }, [isAdmin, user]);
 
+  useEffect(() => {
+    // Filter machines based on search
+    if (!searchQuery.trim()) {
+      setFilteredMachines(machines);
+    } else {
+      const query = searchQuery.toLowerCase();
+      setFilteredMachines(
+        machines.filter(
+          (m) =>
+            m.name.toLowerCase().includes(query) ||
+            m.id.toLowerCase().includes(query)
+        )
+      );
+    }
+  }, [searchQuery, machines]);
+
   const fetchMachines = async () => {
     if (!user) return;
 
@@ -58,18 +84,20 @@ export default function Dashboard() {
 
     if (!error && data) {
       setMachines(data);
+      setFilteredMachines(data);
     }
   };
 
-  const fetchQuestions = async (machineId: string) => {
+  const fetchQuestions = async (machineId: string, category: QuizCategory) => {
     const { data, error } = await supabase
       .from("safety_questions")
       .select("*")
       .eq("machine_id", machineId)
+      .eq("category", category)
       .order("order_index");
 
     if (!error && data) {
-      setQuestions(data);
+      setQuestions(data as Question[]);
     }
   };
 
@@ -77,9 +105,16 @@ export default function Dashboard() {
     setSelectedMachine(machine);
   };
 
-  const handleStartInspection = async () => {
+  const handleStartInspection = () => {
     if (selectedMachine) {
-      await fetchQuestions(selectedMachine.id);
+      setQuizState("category");
+    }
+  };
+
+  const handleSelectCategory = async (category: QuizCategory) => {
+    setSelectedCategory(category);
+    if (selectedMachine) {
+      await fetchQuestions(selectedMachine.id, category);
       setQuizState("warning");
     }
   };
@@ -88,29 +123,49 @@ export default function Dashboard() {
     setQuizState("quiz");
   };
 
-  const handleQuizComplete = async () => {
+  const handleQuizComplete = async (correctAnswers: number, totalQuestions: number) => {
     const now = new Date();
     setTimestamp(now);
 
-    // Log to database
-    if (user && selectedMachine) {
+    // Log to database with score
+    if (user && selectedMachine && selectedCategory) {
       await supabase.from("safety_logs").insert({
         employee_id: user.id,
         machine_id: selectedMachine.id,
         status: "safe",
+        correct_answers: correctAnswers,
+        total_questions: totalQuestions,
+        category: selectedCategory,
       });
     }
 
     setQuizState("success");
   };
 
-  const handleQuizFail = () => {
+  const handleQuizFail = async () => {
+    // Log the failure
+    if (user && selectedMachine && selectedCategory) {
+      await supabase.from("safety_logs").insert({
+        employee_id: user.id,
+        machine_id: selectedMachine.id,
+        status: "failed",
+        correct_answers: 0,
+        total_questions: questions.length,
+        category: selectedCategory,
+      });
+    }
     setQuizState("failed");
   };
 
   const handleBackToDashboard = () => {
     setQuizState("select");
     setSelectedMachine(null);
+    setSelectedCategory(null);
+    setQuestions([]);
+  };
+
+  const handleBackToCategory = () => {
+    setQuizState("category");
     setQuestions([]);
   };
 
@@ -168,6 +223,9 @@ export default function Dashboard() {
       <main className="pt-20 md:pt-24 pb-8 px-4 max-w-4xl mx-auto">
         {quizState === "select" ? (
           <>
+            {/* Warning Banner */}
+            {user && <WarningBanner userId={user.id} />}
+
             {/* Header */}
             <div className="mb-8">
               <h1 className="text-3xl md:text-4xl font-black mb-2">
@@ -178,24 +236,34 @@ export default function Dashboard() {
               </p>
             </div>
 
+            {/* Search Bar */}
+            <MachineSearch 
+              onSearch={setSearchQuery}
+              placeholder="Search machines by name or ID..."
+            />
+
             {/* Equipment Selection */}
             <section className="mb-8">
               <h2 className="text-xl font-bold mb-4 uppercase text-muted-foreground">
                 Select Equipment for Inspection
               </h2>
 
-              {machines.length === 0 ? (
+              {filteredMachines.length === 0 ? (
                 <div className="card-industrial p-8 text-center">
                   <p className="text-lg text-muted-foreground mb-4">
-                    No equipment has been assigned to you yet.
+                    {searchQuery
+                      ? "No machines match your search."
+                      : "No equipment has been assigned to you yet."}
                   </p>
-                  <p className="text-muted-foreground">
-                    Contact your administrator to get equipment access.
-                  </p>
+                  {!searchQuery && (
+                    <p className="text-muted-foreground">
+                      Contact your administrator to get equipment access.
+                    </p>
+                  )}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {machines.map((machine) => (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {filteredMachines.map((machine) => (
                     <EquipmentCard
                       key={machine.id}
                       id={machine.id}
@@ -218,7 +286,7 @@ export default function Dashboard() {
                 variant="default"
                 className="uppercase font-black tracking-wide animate-slide-up"
               >
-                Start Safety Inspection
+                Start Inspection
                 <ArrowRight className="ml-2 h-6 w-6" />
               </Button>
             )}
@@ -237,10 +305,34 @@ export default function Dashboard() {
               </div>
             </footer>
           </>
-        ) : quizState === "quiz" ? (
+        ) : quizState === "category" && selectedMachine ? (
           <div className="pt-8">
+            <Button
+              variant="ghost"
+              onClick={handleBackToDashboard}
+              className="mb-6 -ml-2"
+            >
+              <ArrowLeft className="h-5 w-5 mr-2" />
+              Back to Machines
+            </Button>
+            <QuizCategorySelect
+              machineName={selectedMachine.name}
+              onSelect={handleSelectCategory}
+            />
+          </div>
+        ) : quizState === "quiz" && selectedMachine ? (
+          <div className="pt-8">
+            <Button
+              variant="ghost"
+              onClick={handleBackToCategory}
+              className="mb-6 -ml-2"
+            >
+              <ArrowLeft className="h-5 w-5 mr-2" />
+              Back to Categories
+            </Button>
             <SafetyQuiz
               questions={questions}
+              questionCount={selectedMachine.question_count}
               onComplete={handleQuizComplete}
               onFail={handleQuizFail}
             />
