@@ -40,6 +40,12 @@ export default function MachineInstructions() {
   const [editedInstructions, setEditedInstructions] = useState<Instruction[]>([]);
   const [saving, setSaving] = useState(false);
 
+  // Translate instructions - must be called before any early returns
+  const { items: translatedInstructions, isTranslating } = useTranslateContentBatch(
+    instructions,
+    ["title", "content"]
+  );
+
   useEffect(() => {
     if (!loading && !user) {
       navigate("/auth");
@@ -309,12 +315,6 @@ export default function MachineInstructions() {
       </div>
     );
   }
-
-  // Translate instructions
-  const { items: translatedInstructions, isTranslating } = useTranslateContentBatch(
-    instructions,
-    ["title", "content"]
-  );
 
   const currentInstruction = translatedInstructions[currentStep] || instructions[currentStep];
   const progressPercent = ((currentStep + 1) / instructions.length) * 100;
