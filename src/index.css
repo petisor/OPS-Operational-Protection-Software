@@ -2,95 +2,125 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
+/* SITE SAFE - Industrial Safety Design System
+   Theme: Rugged Industrial - High contrast, high visibility
+   Optimized for construction environments and "fat finger" friendly
 */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Core Industrial Palette */
+    --background: 220 14% 96%; /* Light gray - reduces glare */
+    --foreground: 0 0% 10%; /* Carbon black text */
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 0 0% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 0 0% 10%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Safety Yellow - Primary brand */
+    --primary: 45 93% 53%;
+    --primary-foreground: 0 0% 10%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Carbon Black - Secondary */
+    --secondary: 0 0% 10%;
+    --secondary-foreground: 45 93% 53%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 220 14% 90%;
+    --muted-foreground: 220 9% 46%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 45 93% 47%;
+    --accent-foreground: 0 0% 10%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    /* Signal Green - Success */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    /* High-Vis Orange/Red - Danger */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --radius: 0.5rem;
+    /* Warning Orange */
+    --warning: 25 95% 53%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 220 13% 85%;
+    --input: 220 13% 85%;
+    --ring: 45 93% 53%;
+
+    --radius: 0.125rem; /* Sharp corners - industrial feel */
+
+    /* Industrial specific tokens */
+    --nav-background: 0 0% 10%;
+    --nav-foreground: 45 93% 53%;
+    
+    /* Touch target minimum */
+    --touch-min: 64px;
+    
+    /* Typography scale */
+    --font-size-body: 18px;
+    --font-size-header: 32px;
+    --font-size-hero: 48px;
 
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-ring: 45 93% 53%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 0 0% 8%;
+    --foreground: 0 0% 95%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 0 0% 12%;
+    --card-foreground: 0 0% 95%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 0 0% 12%;
+    --popover-foreground: 0 0% 95%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 45 93% 53%;
+    --primary-foreground: 0 0% 10%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 0 0% 20%;
+    --secondary-foreground: 45 93% 53%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 0 0% 18%;
+    --muted-foreground: 0 0% 65%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 45 93% 47%;
+    --accent-foreground: 0 0% 10%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --warning: 25 95% 53%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    --ring: 45 93% 53%;
+
+    --nav-background: 0 0% 5%;
+    --nav-foreground: 45 93% 53%;
+
+    --sidebar-background: 0 0% 10%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 45 93% 53%;
+    --sidebar-primary-foreground: 0 0% 10%;
+    --sidebar-accent: 0 0% 15%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 0 0% 20%;
+    --sidebar-ring: 45 93% 53%;
   }
 }
 
@@ -99,7 +129,158 @@ All colors MUST be HSL.
     @apply border-border;
   }
 
+  html {
+    font-size: var(--font-size-body);
+  }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold tracking-tight;
+  }
+
+  h1 {
+    @apply text-4xl md:text-5xl;
+  }
+
+  h2 {
+    @apply text-3xl md:text-4xl;
+  }
+
+  h3 {
+    @apply text-2xl md:text-3xl;
+  }
+}
+
+@layer components {
+  /* Fat Finger Friendly Button Base */
+  .btn-industrial {
+    @apply min-h-[64px] px-8 font-bold text-lg rounded-sm border-2 transition-all duration-150;
+    @apply active:scale-[0.98] touch-manipulation;
+  }
+
+  /* Safety action buttons */
+  .btn-safe {
+    @apply btn-industrial bg-success text-success-foreground border-success;
+    @apply hover:bg-success/90 focus:ring-4 focus:ring-success/30;
+  }
+
+  .btn-unsafe {
+    @apply btn-industrial bg-destructive text-destructive-foreground border-destructive;
+    @apply hover:bg-destructive/90 focus:ring-4 focus:ring-destructive/30;
+  }
+
+  .btn-warning {
+    @apply btn-industrial bg-warning text-warning-foreground border-warning;
+    @apply hover:bg-warning/90 focus:ring-4 focus:ring-warning/30;
+  }
+
+  /* Industrial card style */
+  .card-industrial {
+    @apply bg-card border-2 border-border rounded-sm shadow-md;
+    @apply hover:border-primary hover:shadow-lg transition-all duration-200;
+  }
+
+  /* Equipment selection card */
+  .card-equipment {
+    @apply card-industrial p-6 cursor-pointer min-h-[120px];
+    @apply flex flex-col items-center justify-center gap-3;
+    @apply active:scale-[0.98] touch-manipulation;
+  }
+
+  .card-equipment.selected {
+    @apply border-primary bg-primary/10 ring-2 ring-primary;
+  }
+
+  /* Warning modal overlay */
+  .warning-overlay {
+    @apply fixed inset-0 z-50 backdrop-blur-sm;
+    @apply flex items-center justify-center p-4;
+    background-color: hsl(var(--destructive) / 0.95);
+  }
+
+  /* Success animation */
+  @keyframes pulse-success {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.05);
+      opacity: 0.9;
+    }
+  }
+
+  .success-pulse {
+    animation: pulse-success 2s ease-in-out infinite;
+  }
+
+  /* Checkmark animation */
+  @keyframes draw-check {
+    0% {
+      stroke-dashoffset: 100;
+    }
+    100% {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  .checkmark-animate {
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+    animation: draw-check 0.8s ease-out forwards;
+  }
+
+  /* Progress bar industrial style */
+  .progress-industrial {
+    @apply h-3 bg-muted rounded-sm overflow-hidden;
+  }
+
+  .progress-industrial-fill {
+    @apply h-full bg-primary transition-all duration-300;
+  }
+
+  /* Navigation bar */
+  .nav-industrial {
+    @apply fixed top-0 left-0 right-0 z-40 h-16 md:h-20;
+    @apply flex items-center justify-between px-4 md:px-6;
+    @apply border-b-4 border-primary;
+    background-color: hsl(var(--nav-background));
+    color: hsl(var(--nav-foreground));
+  }
+
+  /* Large input fields */
+  .input-industrial {
+    @apply min-h-[56px] text-lg px-4 border-2 border-border rounded-sm;
+    @apply focus:border-primary focus:ring-2 focus:ring-primary/30;
+    @apply bg-card text-foreground;
+  }
+
+  /* QR Code container */
+  .qr-container {
+    @apply bg-white p-4 rounded-sm inline-block;
+  }
+}
+
+@layer utilities {
+  /* Safe zone padding for mobile */
+  .safe-area-inset {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* High contrast text utilities */
+  .text-industrial-primary {
+    @apply text-primary font-bold;
+  }
+
+  .text-industrial-danger {
+    @apply text-destructive font-bold;
+  }
+
+  .text-industrial-success {
+    @apply text-success font-bold;
   }
 }
