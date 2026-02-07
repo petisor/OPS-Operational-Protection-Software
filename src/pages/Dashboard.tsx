@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
-import { Calendar, Clock, ArrowRight, ArrowLeft } from "lucide-react";
+import { Calendar, Clock, ArrowRight, ArrowLeft, BookOpen } from "lucide-react";
 
 interface Machine {
   id: string;
@@ -278,17 +278,28 @@ export default function Dashboard() {
               )}
             </section>
 
-            {/* Start Button */}
+            {/* Action Buttons */}
             {selectedMachine && (
-              <Button
-                onClick={handleStartInspection}
-                size="full"
-                variant="default"
-                className="uppercase font-black tracking-wide animate-slide-up"
-              >
-                Start Inspection
-                <ArrowRight className="ml-2 h-6 w-6" />
-              </Button>
+              <div className="flex gap-4 animate-slide-up">
+                <Button
+                  onClick={() => navigate(`/learn/${selectedMachine.id}`)}
+                  size="lg"
+                  variant="outline"
+                  className="flex-1 uppercase font-black tracking-wide"
+                >
+                  <BookOpen className="mr-2 h-5 w-5" />
+                  Learn
+                </Button>
+                <Button
+                  onClick={handleStartInspection}
+                  size="lg"
+                  variant="default"
+                  className="flex-1 uppercase font-black tracking-wide"
+                >
+                  Quick Inspection
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </div>
             )}
 
             {/* Footer with Date/Time */}
