@@ -39,8 +39,8 @@ serve(async (req) => {
       : "";
 
     const prompt = userPrompt
-      ? `Based on these machine instructions: ${instructionContext}\n\nUser request: ${userPrompt}\n\nProvide a detailed technical description and safety analysis for the ${machineName}.`
-      : `Provide a detailed technical overview and safety guidelines for the ${machineName} based on these instructions: ${instructionContext}`;
+      ? `Based on these machine instructions: ${instructionContext}\n\nUser request: ${userPrompt}\n\nProvide a detailed technical description and safety analysis for the ${machineName}. Use the photos provided in the manuals`
+      : `Provide a detailed technical overview and safety guidelines for the ${machineName} based on these instructions: ${instructionContext}. Use the photos from the manual if possible.`;
 
     const response = await client.chat.completions.create({
       model: "gemini-3-pro-preview",
