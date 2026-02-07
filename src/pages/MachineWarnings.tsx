@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { ArrowLeft, AlertTriangle, ChevronRight, CheckCircle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
@@ -33,6 +34,7 @@ export default function MachineWarnings() {
   const { machineId } = useParams<{ machineId: string }>();
   const { user, profile, isAdmin, loading } = useAuth();
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   const [machine, setMachine] = useState<Machine | null>(null);
   const [warnings, setWarnings] = useState<Warning[]>([]);
@@ -173,7 +175,7 @@ export default function MachineWarnings() {
   if (loading || loadingData) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-2xl font-bold">Loading...</div>
+        <div className="text-2xl font-bold">{t("common.loading")}</div>
       </div>
     );
   }
@@ -189,15 +191,15 @@ export default function MachineWarnings() {
             className="mb-6 -ml-2"
           >
             <ArrowLeft className="h-5 w-5 mr-2" />
-            Back to Learning Environment
+            {t("learn.backToLearn")}
           </Button>
           <div className="text-center py-12">
-            <h2 className="text-2xl font-bold mb-4">No Warnings Available</h2>
+            <h2 className="text-2xl font-bold mb-4">{t("warnings.noWarnings")}</h2>
             <p className="text-muted-foreground mb-6">
-              Warnings for this machine haven't been published yet.
+              {t("warnings.notPublished")}
             </p>
             <Button onClick={() => navigate(`/learn/${machineId}`)}>
-              Go Back
+              {t("common.goBack")}
             </Button>
           </div>
         </main>
@@ -235,17 +237,17 @@ export default function MachineWarnings() {
           className="mb-6 -ml-2"
         >
           <ArrowLeft className="h-5 w-5 mr-2" />
-          Back to Learning Environment
+          {t("learn.backToLearn")}
         </Button>
 
         <div className="mb-6">
           <h1 className="text-2xl md:text-3xl font-black mb-2">
-            Safety Warnings: {machine?.name}
+            {t("warnings.title")}: {machine?.name}
           </h1>
           <div className="flex items-center gap-4">
             <Progress value={progressPercent} className="flex-1" />
             <span className="text-sm text-muted-foreground whitespace-nowrap">
-              {currentIndex + 1} of {warnings.length}
+              {currentIndex + 1} {t("common.of")} {warnings.length}
             </span>
           </div>
         </div>
@@ -256,7 +258,7 @@ export default function MachineWarnings() {
               <AlertTriangle className="h-6 w-6" />
               <div>
                 <span className="text-xs font-bold uppercase">
-                  {currentWarning.severity} Warning
+                  {currentWarning.severity} {t("warnings.warning")}
                 </span>
                 <CardTitle className="text-xl">{currentWarning.title}</CardTitle>
               </div>
@@ -275,7 +277,7 @@ export default function MachineWarnings() {
                   onCheckedChange={(checked) => handleCheckboxChange("read", checked as boolean)}
                 />
                 <Label htmlFor="read-checkbox" className="text-base leading-relaxed cursor-pointer">
-                  I have read and understood the safety warnings.
+                  {t("warnings.readUnderstood")}
                 </Label>
               </div>
 
@@ -286,7 +288,7 @@ export default function MachineWarnings() {
                   onCheckedChange={(checked) => handleCheckboxChange("liability", checked as boolean)}
                 />
                 <Label htmlFor="liability-checkbox" className="text-base leading-relaxed cursor-pointer">
-                  I accept full liability for these known risks.
+                  {t("warnings.acceptLiability")}
                 </Label>
               </div>
             </div>
@@ -300,7 +302,7 @@ export default function MachineWarnings() {
             disabled={!canProceed}
           >
             <CheckCircle className="h-5 w-5 mr-2" />
-            Complete All Warnings
+            {t("warnings.completeAll")}
           </Button>
         ) : (
           <Button
@@ -308,7 +310,7 @@ export default function MachineWarnings() {
             className="w-full"
             disabled={!canProceed}
           >
-            Next Warning
+            {t("warnings.nextWarning")}
             <ChevronRight className="h-5 w-5 ml-2" />
           </Button>
         )}

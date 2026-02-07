@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { ArrowLeft, Send, Bot, User, Loader2 } from "lucide-react";
 
 interface Machine {
@@ -25,6 +26,7 @@ export default function MachineChat() {
   const { machineId } = useParams<{ machineId: string }>();
   const { user, profile, isAdmin, loading } = useAuth();
   const navigate = useNavigate();
+  const { t, language } = useLanguage();
 
   const [machine, setMachine] = useState<Machine | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -73,7 +75,7 @@ export default function MachineChat() {
     setMessages([
       {
         role: "assistant",
-        content: `Hello! I'm your assistant for the ${machineData.name}. I can help answer questions about operating this machine, safety procedures, and more. What would you like to know?`,
+        content: `${t("chat.greeting")} ${machineData.name}. ${t("chat.greetingEnd")}`,
       },
     ]);
   };
@@ -117,6 +119,7 @@ export default function MachineChat() {
           machineId,
           message: userMessage.content,
           conversationHistory,
+          language, // Pass the selected language to the backend
         }),
       });
 
@@ -181,7 +184,7 @@ export default function MachineChat() {
   if (loading || loadingData) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-2xl font-bold">Loading...</div>
+        <div className="text-2xl font-bold">{t("common.loading")}</div>
       </div>
     );
   }
@@ -197,15 +200,15 @@ export default function MachineChat() {
           className="mb-4 -ml-2 self-start"
         >
           <ArrowLeft className="h-5 w-5 mr-2" />
-          Back to Learning Environment
+          {t("learn.backToLearn")}
         </Button>
 
         <div className="mb-4">
           <h1 className="text-2xl md:text-3xl font-black">
-            Live Assistance: {machine?.name}
+            {t("chat.title")}: {machine?.name}
           </h1>
           <p className="text-muted-foreground">
-            Ask any question about this machine
+            {t("chat.placeholder")}
           </p>
         </div>
 
@@ -259,7 +262,7 @@ export default function MachineChat() {
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Type your question..."
+                placeholder={t("chat.placeholder")}
                 disabled={isStreaming}
                 className="flex-1"
               />

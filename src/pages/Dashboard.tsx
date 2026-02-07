@@ -12,6 +12,7 @@ import { WarningBanner } from "@/components/WarningBanner";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { format } from "date-fns";
 import { Calendar, Clock, ArrowRight, ArrowLeft, BookOpen } from "lucide-react";
 
@@ -39,6 +40,7 @@ type QuizCategory = "safety" | "usage";
 export default function Dashboard() {
   const { user, profile, isAdmin, loading } = useAuth();
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [machines, setMachines] = useState<Machine[]>([]);
   const [filteredMachines, setFilteredMachines] = useState<Machine[]>([]);
   const [selectedMachine, setSelectedMachine] = useState<Machine | null>(null);
@@ -171,15 +173,15 @@ export default function Dashboard() {
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return "Good Morning";
-    if (hour < 17) return "Good Afternoon";
-    return "Good Evening";
+    if (hour < 12) return t("dashboard.goodMorning");
+    if (hour < 17) return t("dashboard.goodAfternoon");
+    return t("dashboard.goodEvening");
   };
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-2xl font-bold">Loading...</div>
+        <div className="text-2xl font-bold">{t("common.loading")}</div>
       </div>
     );
   }
@@ -188,7 +190,7 @@ export default function Dashboard() {
   if (quizState === "success" && selectedMachine) {
     return (
       <SafetySuccess
-        employeeName={profile?.full_name || "Worker"}
+        employeeName={profile?.full_name || t("nav.worker")}
         machineName={selectedMachine.name}
         timestamp={timestamp}
         onBackToDashboard={handleBackToDashboard}
@@ -229,35 +231,35 @@ export default function Dashboard() {
             {/* Header */}
             <div className="mb-8">
               <h1 className="text-3xl md:text-4xl font-black mb-2">
-                {getGreeting()}, {profile?.full_name || "Worker"}
+                {getGreeting()}, {profile?.full_name || t("nav.worker")}
               </h1>
               <p className="text-lg text-muted-foreground">
-                Complete your equipment safety check before starting work.
+                {t("dashboard.completeCheck")}
               </p>
             </div>
 
             {/* Search Bar */}
             <MachineSearch 
               onSearch={setSearchQuery}
-              placeholder="Search machines by name or ID..."
+              placeholder={t("dashboard.searchPlaceholder")}
             />
 
             {/* Equipment Selection */}
             <section className="mb-8">
               <h2 className="text-xl font-bold mb-4 uppercase text-muted-foreground">
-                Select Equipment for Inspection
+                {t("dashboard.selectEquipment")}
               </h2>
 
               {filteredMachines.length === 0 ? (
                 <div className="card-industrial p-8 text-center">
                   <p className="text-lg text-muted-foreground mb-4">
                     {searchQuery
-                      ? "No machines match your search."
-                      : "No equipment has been assigned to you yet."}
+                      ? t("dashboard.noMatch")
+                      : t("dashboard.noMachines")}
                   </p>
                   {!searchQuery && (
                     <p className="text-muted-foreground">
-                      Contact your administrator to get equipment access.
+                      {t("dashboard.contactAdmin")}
                     </p>
                   )}
                 </div>
@@ -288,7 +290,7 @@ export default function Dashboard() {
                   className="flex-1 uppercase font-black tracking-wide"
                 >
                   <BookOpen className="mr-2 h-5 w-5" />
-                  Learn
+                  {t("dashboard.learn")}
                 </Button>
                 <Button
                   onClick={handleStartInspection}
@@ -296,7 +298,7 @@ export default function Dashboard() {
                   variant="default"
                   className="flex-1 uppercase font-black tracking-wide"
                 >
-                  Quick Inspection
+                  {t("dashboard.quickInspection")}
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </div>
@@ -324,7 +326,7 @@ export default function Dashboard() {
               className="mb-6 -ml-2"
             >
               <ArrowLeft className="h-5 w-5 mr-2" />
-              Back to Machines
+              {t("dashboard.backToMachines")}
             </Button>
             <QuizCategorySelect
               machineName={selectedMachine.name}
@@ -339,7 +341,7 @@ export default function Dashboard() {
               className="mb-6 -ml-2"
             >
               <ArrowLeft className="h-5 w-5 mr-2" />
-              Back to Categories
+              {t("dashboard.backToCategories")}
             </Button>
             <SafetyQuiz
               questions={questions}
