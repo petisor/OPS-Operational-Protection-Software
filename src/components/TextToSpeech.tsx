@@ -68,8 +68,12 @@ export function TextToSpeech() {
       setIsSpeaking(false);
     };
 
-    utterance.onerror = () => {
+    utterance.onerror = (event) => {
       setIsSpeaking(false);
+      // Don't show error when speech is manually cancelled/interrupted
+      if (event.error === "interrupted" || event.error === "canceled") {
+        return;
+      }
       toast({
         title: "Error",
         description: "Failed to read page content.",
