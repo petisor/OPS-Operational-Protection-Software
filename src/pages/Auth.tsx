@@ -43,18 +43,32 @@ export default function Auth() {
             throw new Error("Employer ID is required for worker accounts");
           }
           
-          // Verify the employer_id exists (belongs to an admin)
-          const { data: adminProfile, error: checkError } = await supabase
+          // Verify the employer_id exists and belongs to an admin
+          const { data: adminProfiles, error: checkError } = await supabase
             .from("profiles")
-            .select("employer_id")
-            .eq("employer_id", employerId.trim().toUpperCase())
-            .maybeSingle();
+            .select("user_id, employer_id")
+            .eq("employer_id", employerId.trim().toUpperCase());
           
           if (checkError) {
             throw new Error("Failed to verify Employer ID");
           }
           
-          if (!adminProfile) {
+          if (!adminProfiles || adminProfiles.length === 0) {
+            throw new Error("Invalid Employer ID. Please check with your administrator.");
+          }
+          
+          // Verify at least one of these profiles is an admin
+          const { data: adminRoles, error: roleError } = await supabase
+            .from("user_roles")
+            .select("user_id")
+            .eq("role", "admin")
+            .in("user_id", adminProfiles.map(p => p.user_id));
+          
+          if (roleError) {
+            throw new Error("Failed to verify Employer ID");
+          }
+          
+          if (!adminRoles || adminRoles.length === 0) {
             throw new Error("Invalid Employer ID. Please check with your administrator.");
           }
         }
