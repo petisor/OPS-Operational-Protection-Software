@@ -37,39 +37,27 @@ export default function Auth() {
         if (error) throw error;
         navigate("/");
       } else {
-        // Validate employer_id for workers
+        // Validate employer_id for workers (must match an existing Admin Employer ID)
         if (selectedRole === "user") {
-          if (!employerId.trim()) {
+          const normalizedEmployerId = employerId.trim().toUpperCase();
+
+          if (!normalizedEmployerId) {
             throw new Error("Employer ID is required for worker accounts");
           }
-          
-          // Verify the employer_id exists and belongs to an admin
-          const { data: adminProfiles, error: checkError } = await supabase
-            .from("profiles")
-            .select("user_id, employer_id")
-            .eq("employer_id", employerId.trim().toUpperCase());
-          
-          if (checkError) {
+
+          const { data, error: verifyError } = await supabase.functions.invoke(
+            "validate-employer-id",
+            { body: { employerId: normalizedEmployerId } }
+          );
+
+          if (verifyError) {
             throw new Error("Failed to verify Employer ID");
           }
-          
-          if (!adminProfiles || adminProfiles.length === 0) {
-            throw new Error("Invalid Employer ID. Please check with your administrator.");
-          }
-          
-          // Verify at least one of these profiles is an admin
-          const { data: adminRoles, error: roleError } = await supabase
-            .from("user_roles")
-            .select("user_id")
-            .eq("role", "admin")
-            .in("user_id", adminProfiles.map(p => p.user_id));
-          
-          if (roleError) {
-            throw new Error("Failed to verify Employer ID");
-          }
-          
-          if (!adminRoles || adminRoles.length === 0) {
-            throw new Error("Invalid Employer ID. Please check with your administrator.");
+
+          if (!data?.valid) {
+            throw new Error(
+              "Invalid Employer ID. Please check with your administrator."
+            );
           }
         }
 
