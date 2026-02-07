@@ -51,9 +51,22 @@ export function useVoiceRecorder({
   const [isSupported, setIsSupported] = useState(true);
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const transcriptRef = useRef<string>("");
-
+  
+  // Use refs for callbacks to avoid re-creating recognition on callback changes
+  const onTranscriptionRef = useRef(onTranscription);
+  const onErrorRef = useRef(onError);
+  
+  // Keep refs in sync with props
   useEffect(() => {
-    // Check if Web Speech API is supported
+    onTranscriptionRef.current = onTranscription;
+  }, [onTranscription]);
+  
+  useEffect(() => {
+    onErrorRef.current = onError;
+  }, [onError]);
+
+  // Initialize speech recognition once
+  useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
       setIsSupported(false);
@@ -87,23 +100,27 @@ export function useVoiceRecorder({
         transcriptRef.current += finalTranscript;
       }
 
-      // Show interim results as we're transcribing
       if (interimTranscript) {
         setIsTranscribing(true);
       }
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      // Ignore aborted errors when stopping intentionally
+      if (event.error === "aborted") {
+        return;
+      }
+      
       console.error("Speech recognition error:", event.error);
       setIsRecording(false);
       setIsTranscribing(false);
       
       if (event.error === "not-allowed") {
-        onError?.("Microphone access denied. Please allow microphone access.");
+        onErrorRef.current?.("Microphone access denied. Please allow microphone access.");
       } else if (event.error === "no-speech") {
-        onError?.("No speech detected. Please try again.");
+        onErrorRef.current?.("No speech detected. Please try again.");
       } else {
-        onError?.(`Speech recognition error: ${event.error}`);
+        onErrorRef.current?.(`Speech recognition error: ${event.error}`);
       }
     };
 
@@ -112,20 +129,24 @@ export function useVoiceRecorder({
       setIsTranscribing(false);
       
       if (transcriptRef.current.trim()) {
-        onTranscription?.(transcriptRef.current.trim());
+        onTranscriptionRef.current?.(transcriptRef.current.trim());
       }
     };
 
     recognitionRef.current = recognition;
 
+    // Cleanup only on unmount
     return () => {
-      recognition.abort();
+      if (recognitionRef.current) {
+        recognitionRef.current.abort();
+        recognitionRef.current = null;
+      }
     };
-  }, [language, onTranscription, onError]);
+  }, [language]); // Only re-create when language changes
 
   const startRecording = useCallback(() => {
     if (!isSupported) {
-      onError?.("Speech recognition is not supported in this browser. Please use Chrome or Edge.");
+      onErrorRef.current?.("Speech recognition is not supported in this browser. Please use Chrome or Edge.");
       return;
     }
 
@@ -134,11 +155,15 @@ export function useVoiceRecorder({
         transcriptRef.current = "";
         recognitionRef.current.start();
       } catch (error: any) {
+        // Handle case where recognition is already started
+        if (error.message?.includes("already started")) {
+          return;
+        }
         console.error("Failed to start recording:", error);
-        onError?.("Failed to start recording. Please try again.");
+        onErrorRef.current?.("Failed to start recording. Please try again.");
       }
     }
-  }, [isSupported, isRecording, onError]);
+  }, [isSupported, isRecording]);
 
   const stopRecording = useCallback(() => {
     if (recognitionRef.current && isRecording) {
