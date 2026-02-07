@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { ArrowLeft, CheckCircle, ChevronRight, ChevronLeft, Pencil, Save, X, Plus, Trash2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
@@ -28,6 +29,7 @@ export default function MachineInstructions() {
   const { user, profile, isAdmin, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   const [machine, setMachine] = useState<Machine | null>(null);
   const [instructions, setInstructions] = useState<Instruction[]>([]);
@@ -199,7 +201,7 @@ export default function MachineInstructions() {
   if (loading || loadingData) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-2xl font-bold">Loading...</div>
+        <div className="text-2xl font-bold">{t("common.loading")}</div>
       </div>
     );
   }
@@ -213,16 +215,16 @@ export default function MachineInstructions() {
         <main className="pt-20 md:pt-24 pb-8 px-4 max-w-4xl mx-auto">
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl md:text-3xl font-black">
-              Edit Instructions: {machine?.name}
+              {t("instructions.editInstructions")}: {machine?.name}
             </h1>
             <div className="flex gap-2">
               <Button variant="outline" onClick={handleCancelEdit} disabled={saving}>
                 <X className="h-5 w-5 mr-2" />
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button onClick={handleSaveInstructions} disabled={saving}>
                 <Save className="h-5 w-5 mr-2" />
-                {saving ? "Saving..." : "Save"}
+                {saving ? t("instructions.saving") : t("common.save")}
               </Button>
             </div>
           </div>
@@ -238,7 +240,7 @@ export default function MachineInstructions() {
                     <Input
                       value={instruction.title}
                       onChange={(e) => updateInstruction(index, "title", e.target.value)}
-                      placeholder="Step title"
+                      placeholder={t("instructions.stepTitle")}
                       className="flex-1 font-bold text-lg"
                     />
                     <Button
@@ -255,7 +257,7 @@ export default function MachineInstructions() {
                   <Textarea
                     value={instruction.content}
                     onChange={(e) => updateInstruction(index, "content", e.target.value)}
-                    placeholder="Step content - detailed instructions..."
+                    placeholder={t("instructions.stepContent")}
                     className="min-h-[120px]"
                   />
                 </CardContent>
@@ -264,7 +266,7 @@ export default function MachineInstructions() {
 
             <Button variant="outline" onClick={addInstruction} className="w-full">
               <Plus className="h-5 w-5 mr-2" />
-              Add Step
+              {t("instructions.addStep")}
             </Button>
           </div>
         </main>
@@ -283,22 +285,22 @@ export default function MachineInstructions() {
             className="mb-6 -ml-2"
           >
             <ArrowLeft className="h-5 w-5 mr-2" />
-            Back to Learning Environment
+            {t("learn.backToLearn")}
           </Button>
           <div className="text-center py-12">
-            <h2 className="text-2xl font-bold mb-4">No Instructions Available</h2>
+            <h2 className="text-2xl font-bold mb-4">{t("instructions.noInstructions")}</h2>
             <p className="text-muted-foreground mb-6">
-              Instructions for this machine haven't been generated yet.
+              {t("instructions.notGenerated")}
             </p>
             {isAdmin && (
               <Button onClick={handleStartEdit}>
                 <Plus className="h-5 w-5 mr-2" />
-                Add Instructions
+                {t("instructions.addInstructions")}
               </Button>
             )}
             {!isAdmin && (
               <Button onClick={() => navigate(`/learn/${machineId}`)}>
-                Go Back
+                {t("common.goBack")}
               </Button>
             )}
           </div>
@@ -323,25 +325,25 @@ export default function MachineInstructions() {
             className="-ml-2"
           >
             <ArrowLeft className="h-5 w-5 mr-2" />
-            Back to Learning Environment
+            {t("learn.backToLearn")}
           </Button>
           
           {isAdmin && (
             <Button variant="outline" size="sm" onClick={handleStartEdit}>
               <Pencil className="h-4 w-4 mr-2" />
-              Edit Instructions
+              {t("instructions.editInstructions")}
             </Button>
           )}
         </div>
 
         <div className="mb-6">
           <h1 className="text-2xl md:text-3xl font-black mb-2">
-            How to Use: {machine?.name}
+            {t("instructions.title")}: {machine?.name}
           </h1>
           <div className="flex items-center gap-4">
             <Progress value={progressPercent} className="flex-1" />
             <span className="text-sm text-muted-foreground whitespace-nowrap">
-              Step {currentStep + 1} of {instructions.length}
+              {t("common.step")} {currentStep + 1} {t("common.of")} {instructions.length}
             </span>
           </div>
         </div>
@@ -370,17 +372,17 @@ export default function MachineInstructions() {
             className="flex-1"
           >
             <ChevronLeft className="h-5 w-5 mr-2" />
-            Previous
+            {t("common.previous")}
           </Button>
 
           {isLastStep ? (
             <Button onClick={handleComplete} className="flex-1">
               <CheckCircle className="h-5 w-5 mr-2" />
-              Complete
+              {t("common.complete")}
             </Button>
           ) : (
             <Button onClick={nextStep} className="flex-1">
-              Next
+              {t("common.next")}
               <ChevronRight className="h-5 w-5 ml-2" />
             </Button>
           )}

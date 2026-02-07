@@ -4,6 +4,7 @@ import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { ArrowLeft, BookOpen, AlertTriangle, ClipboardCheck, MessageCircle, Lock, CheckCircle, Image as ImageIcon } from "lucide-react";
 
 interface Machine {
@@ -23,6 +24,7 @@ export default function LearningEnvironment() {
   const { machineId } = useParams<{ machineId: string }>();
   const { user, profile, isAdmin, loading } = useAuth();
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   const [machine, setMachine] = useState<Machine | null>(null);
   const [progress, setProgress] = useState<LearningProgress | null>(null);
@@ -117,7 +119,7 @@ export default function LearningEnvironment() {
   if (loading || loadingData) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-2xl font-bold">Loading...</div>
+        <div className="text-2xl font-bold">{t("common.loading")}</div>
       </div>
     );
   }
@@ -125,66 +127,66 @@ export default function LearningEnvironment() {
   const categories = [
     {
       id: "how-to-use",
-      title: "How to Use",
-      description: "Step-by-step instructions on how to operate this machine safely and effectively.",
+      title: t("learn.howToUse"),
+      description: t("learn.howToUseDesc"),
       icon: BookOpen,
       completed: progress?.instructions_completed,
       locked: false,
       iconBgColor: "bg-primary/20",
       iconColor: "text-primary",
-      badgeText: "Start Here",
+      badgeText: t("learn.startHere"),
       badgeBgColor: "bg-primary/20",
       badgeTextColor: "text-primary",
     },
     {
       id: "warnings",
-      title: "Warnings",
-      description: "Safety warnings and liability notices. You must acknowledge all warnings to proceed.",
+      title: t("learn.warnings"),
+      description: t("learn.warningsDesc"),
       icon: AlertTriangle,
       completed: progress?.warnings_completed,
       locked: false,
       iconBgColor: "bg-warning/20",
       iconColor: "text-warning",
-      badgeText: "Required",
+      badgeText: t("learn.required"),
       badgeBgColor: "bg-warning/20",
       badgeTextColor: "text-warning",
     },
     {
       id: "quiz",
-      title: "Quiz",
-      description: "Test your knowledge with safety and usage quizzes to get certified.",
+      title: t("learn.quiz"),
+      description: t("learn.quizDesc"),
       icon: ClipboardCheck,
       completed: false,
       locked: !progress?.warnings_completed,
       iconBgColor: "bg-success/20",
       iconColor: "text-success",
-      badgeText: progress?.warnings_completed ? "Ready" : "Locked",
+      badgeText: progress?.warnings_completed ? t("learn.ready") : t("learn.locked"),
       badgeBgColor: progress?.warnings_completed ? "bg-success/20" : "bg-muted",
       badgeTextColor: progress?.warnings_completed ? "text-success" : "text-muted-foreground",
     },
     {
       id: "visual-support",
-      title: "Visual Support",
-      description: "Generate visual guides and illustrations based on the machine manual.",
+      title: t("learn.visualSupport"),
+      description: t("learn.visualSupportDesc"),
       icon: ImageIcon,
       completed: false,
       locked: false,
       iconBgColor: "bg-blue-500/20",
       iconColor: "text-blue-500",
-      badgeText: "AI Generated",
+      badgeText: t("learn.aiGenerated"),
       badgeBgColor: "bg-blue-500/20",
       badgeTextColor: "text-blue-500",
     },
     {
       id: "live-assistance",
-      title: "Live Assistance",
-      description: "Chat with an AI assistant trained on this machine's manual for instant help.",
+      title: t("learn.liveAssistance"),
+      description: t("learn.liveAssistanceDesc"),
       icon: MessageCircle,
       completed: false,
       locked: false,
       iconBgColor: "bg-purple-500/20",
       iconColor: "text-purple-500",
-      badgeText: "AI Powered",
+      badgeText: t("learn.aiPowered"),
       badgeBgColor: "bg-purple-500/20",
       badgeTextColor: "text-purple-500",
     },
@@ -201,15 +203,15 @@ export default function LearningEnvironment() {
           className="mb-6 -ml-2"
         >
           <ArrowLeft className="h-5 w-5 mr-2" />
-          Back to Dashboard
+          {t("dashboard.backToDashboard")}
         </Button>
 
         <div className="text-center mb-8">
           <h1 className="text-3xl md:text-4xl font-black mb-2">
-            Learning Environment
+            {t("learn.title")}
           </h1>
           <p className="text-lg text-muted-foreground">
-            {machine?.name} - Complete all sections to operate this machine
+            {machine?.name} - {t("learn.completeAll")}
           </p>
         </div>
 
@@ -245,7 +247,7 @@ export default function LearningEnvironment() {
                 </p>
                 <div className={`mt-2 px-4 py-2 ${category.badgeBgColor} rounded-sm`}>
                   <span className={`font-bold ${category.badgeTextColor}`}>
-                    {isCompleted ? "Completed" : category.badgeText}
+                    {isCompleted ? t("common.completed") : category.badgeText}
                   </span>
                 </div>
               </button>

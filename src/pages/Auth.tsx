@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Shield, User, Lock, Mail, IdCard, UserCog, Eye, EyeOff, Building } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { LanguageSelector } from "@/components/LanguageSelector";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type AuthMode = "login" | "signup";
 type UserRole = "admin" | "user";
@@ -22,6 +24,7 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,8 +82,8 @@ export default function Auth() {
         if (error) throw error;
 
         toast({
-          title: "Account created!",
-          description: "Please check your email to verify your account.",
+          title: t("auth.accountCreated"),
+          description: t("auth.checkEmail"),
         });
       }
     } catch (error: any) {
@@ -96,6 +99,11 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      {/* Language Selector - Top Right */}
+      <div className="absolute top-4 right-4">
+        <LanguageSelector />
+      </div>
+
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
@@ -111,7 +119,7 @@ export default function Auth() {
         {/* Auth Card */}
         <div className="card-industrial p-6">
           <h2 className="text-2xl font-bold mb-6 text-center">
-            {mode === "login" ? "Sign In" : "Create Account"}
+            {mode === "login" ? t("auth.signIn") : t("auth.createAccount")}
           </h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -119,7 +127,7 @@ export default function Auth() {
               <>
                 <div className="space-y-2">
                   <Label htmlFor="fullName" className="text-lg font-semibold">
-                    Full Name
+                    {t("auth.fullName")}
                   </Label>
                   <div className="relative">
                     <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -137,7 +145,7 @@ export default function Auth() {
 
                 <div className="space-y-2">
                   <Label htmlFor="employeeId" className="text-lg font-semibold">
-                    {selectedRole === "admin" ? "Employee ID (Optional)" : "Employer ID"}
+                    {selectedRole === "admin" ? t("auth.employeeId") : t("auth.employerId")}
                   </Label>
                   <div className="relative">
                     {selectedRole === "admin" ? (
@@ -160,14 +168,14 @@ export default function Auth() {
                   </div>
                   {selectedRole === "user" && (
                     <p className="text-sm text-muted-foreground">
-                      Ask your administrator for the Employer ID
+                      {t("auth.askAdmin")}
                     </p>
                   )}
                 </div>
 
                 {/* Role Selection */}
                 <div className="space-y-2">
-                  <Label className="text-lg font-semibold">Account Type</Label>
+                  <Label className="text-lg font-semibold">{t("auth.accountType")}</Label>
                   <div className="grid grid-cols-2 gap-4">
                     <button
                       type="button"
@@ -179,7 +187,7 @@ export default function Auth() {
                       }`}
                     >
                       <User className={`h-8 w-8 ${selectedRole === "user" ? "text-primary-foreground" : ""}`} />
-                      <span className="font-bold">Worker</span>
+                      <span className="font-bold">{t("auth.worker")}</span>
                     </button>
                     <button
                       type="button"
@@ -191,7 +199,7 @@ export default function Auth() {
                       }`}
                     >
                       <UserCog className={`h-8 w-8 ${selectedRole === "admin" ? "text-primary-foreground" : ""}`} />
-                      <span className="font-bold">Admin</span>
+                      <span className="font-bold">{t("auth.admin")}</span>
                     </button>
                   </div>
                 </div>
@@ -200,7 +208,7 @@ export default function Auth() {
 
             <div className="space-y-2">
               <Label htmlFor="email" className="text-lg font-semibold">
-                Email Address
+                {t("auth.email")}
               </Label>
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -218,7 +226,7 @@ export default function Auth() {
 
             <div className="space-y-2">
               <Label htmlFor="password" className="text-lg font-semibold">
-                Password
+                {t("auth.password")}
               </Label>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -254,10 +262,10 @@ export default function Auth() {
               disabled={loading}
             >
               {loading
-                ? "Please wait..."
+                ? t("auth.pleaseWait")
                 : mode === "login"
-                ? "Sign In"
-                : "Create Account"}
+                ? t("auth.signIn")
+                : t("auth.createAccount")}
             </Button>
           </form>
 
@@ -268,8 +276,8 @@ export default function Auth() {
               className="text-lg text-primary hover:underline font-semibold"
             >
               {mode === "login"
-                ? "Don't have an account? Sign Up"
-                : "Already have an account? Sign In"}
+                ? t("auth.noAccount")
+                : t("auth.hasAccount")}
             </button>
           </div>
         </div>
