@@ -43,6 +43,12 @@ export default function MachineWarnings() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loadingData, setLoadingData] = useState(true);
 
+  // Translate warnings - must be called before any early returns
+  const { items: translatedWarnings, isTranslating } = useTranslateContentBatch(
+    warnings,
+    ["title", "content"]
+  );
+
   useEffect(() => {
     if (!loading && !user) {
       navigate("/auth");
@@ -207,12 +213,6 @@ export default function MachineWarnings() {
       </div>
     );
   }
-
-  // Translate warnings
-  const { items: translatedWarnings, isTranslating } = useTranslateContentBatch(
-    warnings,
-    ["title", "content"]
-  );
 
   const currentWarning = translatedWarnings[currentIndex] || warnings[currentIndex];
   const currentAck = acknowledgments.get(warnings[currentIndex]?.id);
