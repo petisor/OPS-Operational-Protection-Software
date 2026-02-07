@@ -38,8 +38,25 @@ export default function Auth() {
         navigate("/");
       } else {
         // Validate employer_id for workers
-        if (selectedRole === "user" && !employerId.trim()) {
-          throw new Error("Employer ID is required for worker accounts");
+        if (selectedRole === "user") {
+          if (!employerId.trim()) {
+            throw new Error("Employer ID is required for worker accounts");
+          }
+          
+          // Verify the employer_id exists (belongs to an admin)
+          const { data: adminProfile, error: checkError } = await supabase
+            .from("profiles")
+            .select("employer_id")
+            .eq("employer_id", employerId.trim().toUpperCase())
+            .maybeSingle();
+          
+          if (checkError) {
+            throw new Error("Failed to verify Employer ID");
+          }
+          
+          if (!adminProfile) {
+            throw new Error("Invalid Employer ID. Please check with your administrator.");
+          }
         }
 
         // Pass role and profile data via user metadata - the database trigger will create profile and role

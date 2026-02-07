@@ -7,6 +7,7 @@ interface Profile {
   user_id: string;
   full_name: string;
   employee_id: string | null;
+  employer_id: string | null;
 }
 
 interface AuthContextType {

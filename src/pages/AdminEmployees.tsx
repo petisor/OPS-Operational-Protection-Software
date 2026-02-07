@@ -121,9 +121,14 @@ export default function AdminEmployees() {
   }, [searchQuery, employees]);
 
   const fetchEmployees = async () => {
+    if (!profile?.employer_id) return;
+    
+    // Only fetch workers who have this admin's employer_id
+    // Workers store the admin's employer_id in their employee_id field
     const { data: profiles, error } = await supabase
       .from("profiles")
       .select("*")
+      .eq("employee_id", profile.employer_id)
       .order("full_name");
 
     if (!error && profiles) {
