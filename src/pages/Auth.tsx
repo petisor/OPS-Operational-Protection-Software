@@ -133,21 +133,25 @@ export default function Auth() {
                     <button
                       type="button"
                       onClick={() => setSelectedRole("user")}
-                      className={`card-industrial p-4 flex flex-col items-center gap-2 ${
-                        selectedRole === "user" ? "selected" : ""
+                      className={`p-4 flex flex-col items-center gap-2 border-2 rounded-sm transition-all duration-200 ${
+                        selectedRole === "user" 
+                          ? "bg-primary border-primary text-primary-foreground" 
+                          : "bg-card border-border hover:border-primary/50"
                       }`}
                     >
-                      <User className="h-8 w-8" />
+                      <User className={`h-8 w-8 ${selectedRole === "user" ? "text-primary-foreground" : ""}`} />
                       <span className="font-bold">Worker</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => setSelectedRole("admin")}
-                      className={`card-industrial p-4 flex flex-col items-center gap-2 ${
-                        selectedRole === "admin" ? "selected" : ""
+                      className={`p-4 flex flex-col items-center gap-2 border-2 rounded-sm transition-all duration-200 ${
+                        selectedRole === "admin" 
+                          ? "bg-primary border-primary text-primary-foreground" 
+                          : "bg-card border-border hover:border-primary/50"
                       }`}
                     >
-                      <UserCog className="h-8 w-8" />
+                      <UserCog className={`h-8 w-8 ${selectedRole === "admin" ? "text-primary-foreground" : ""}`} />
                       <span className="font-bold">Admin</span>
                     </button>
                   </div>

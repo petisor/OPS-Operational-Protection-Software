@@ -142,15 +142,15 @@ export default function Dashboard() {
     setQuizState("success");
   };
 
-  const handleQuizFail = async () => {
-    // Log the failure
+  const handleQuizFail = async (correctAnswers: number, totalQuestions: number) => {
+    // Log the failure with actual correct count
     if (user && selectedMachine && selectedCategory) {
       await supabase.from("safety_logs").insert({
         employee_id: user.id,
         machine_id: selectedMachine.id,
         status: "failed",
-        correct_answers: 0,
-        total_questions: questions.length,
+        correct_answers: correctAnswers,
+        total_questions: totalQuestions,
         category: selectedCategory,
       });
     }
