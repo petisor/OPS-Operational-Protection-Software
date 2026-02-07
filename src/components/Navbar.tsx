@@ -10,7 +10,6 @@ import {
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { TextToSpeech } from "@/components/TextToSpeech";
 
 interface NavbarProps {
   userName?: string;
@@ -49,8 +48,6 @@ export function Navbar({ userName = "Worker", isAdmin = false }: NavbarProps) {
       </div>
 
       <div className="flex items-center gap-2">
-        <TextToSpeech className="text-nav-foreground hover:bg-secondary/20" />
-        
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
