@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      employee_warnings: {
+        Row: {
+          admin_id: string
+          created_at: string
+          employee_id: string
+          id: string
+          machine_id: string | null
+          message: string
+          read: boolean
+          warning_type: string
+        }
+        Insert: {
+          admin_id: string
+          created_at?: string
+          employee_id: string
+          id?: string
+          machine_id?: string | null
+          message: string
+          read?: boolean
+          warning_type?: string
+        }
+        Update: {
+          admin_id?: string
+          created_at?: string
+          employee_id?: string
+          id?: string
+          machine_id?: string | null
+          message?: string
+          read?: boolean
+          warning_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_warnings_machine_id_fkey"
+            columns: ["machine_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       machine_access: {
         Row: {
           granted_at: string
@@ -55,6 +96,8 @@ export type Database = {
           id: string
           manual_url: string | null
           name: string
+          question_count: number
+          recertification_days: number
           safety_warning: string
           updated_at: string
         }
@@ -66,6 +109,8 @@ export type Database = {
           id?: string
           manual_url?: string | null
           name: string
+          question_count?: number
+          recertification_days?: number
           safety_warning?: string
           updated_at?: string
         }
@@ -77,6 +122,8 @@ export type Database = {
           id?: string
           manual_url?: string | null
           name?: string
+          question_count?: number
+          recertification_days?: number
           safety_warning?: string
           updated_at?: string
         }
@@ -111,25 +158,34 @@ export type Database = {
       }
       safety_logs: {
         Row: {
+          category: Database["public"]["Enums"]["question_category"] | null
+          correct_answers: number | null
           employee_id: string
           id: string
           machine_id: string
           status: string
           timestamp: string
+          total_questions: number | null
         }
         Insert: {
+          category?: Database["public"]["Enums"]["question_category"] | null
+          correct_answers?: number | null
           employee_id: string
           id?: string
           machine_id: string
           status?: string
           timestamp?: string
+          total_questions?: number | null
         }
         Update: {
+          category?: Database["public"]["Enums"]["question_category"] | null
+          correct_answers?: number | null
           employee_id?: string
           id?: string
           machine_id?: string
           status?: string
           timestamp?: string
+          total_questions?: number | null
         }
         Relationships: [
           {
@@ -143,6 +199,8 @@ export type Database = {
       }
       safety_questions: {
         Row: {
+          category: Database["public"]["Enums"]["question_category"]
+          correct_answer: boolean
           created_at: string
           id: string
           machine_id: string
@@ -150,6 +208,8 @@ export type Database = {
           question: string
         }
         Insert: {
+          category?: Database["public"]["Enums"]["question_category"]
+          correct_answer?: boolean
           created_at?: string
           id?: string
           machine_id: string
@@ -157,6 +217,8 @@ export type Database = {
           question: string
         }
         Update: {
+          category?: Database["public"]["Enums"]["question_category"]
+          correct_answer?: boolean
           created_at?: string
           id?: string
           machine_id?: string
@@ -206,6 +268,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      question_category: "safety" | "usage"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -334,6 +397,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      question_category: ["safety", "usage"],
     },
   },
 } as const
