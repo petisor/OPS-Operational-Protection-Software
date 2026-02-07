@@ -51,6 +51,7 @@ export function useVoiceRecorder({
   const [isSupported, setIsSupported] = useState(true);
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const transcriptRef = useRef<string>("");
+  const isRecordingRef = useRef(false); // Track recording state with ref for reliable checks
   
   // Use refs for callbacks to avoid re-creating recognition on callback changes
   const onTranscriptionRef = useRef(onTranscription);
@@ -74,12 +75,15 @@ export function useVoiceRecorder({
     }
 
     const recognition = new SpeechRecognition();
-    recognition.continuous = true;
+    recognition.continuous = false; // Changed to false - stop after first pause
     recognition.interimResults = true;
     recognition.lang = language;
 
     recognition.onstart = () => {
+      console.log("Speech recognition started");
+      isRecordingRef.current = true;
       setIsRecording(true);
+      setIsTranscribing(false);
       transcriptRef.current = "";
     };
 
@@ -100,31 +104,38 @@ export function useVoiceRecorder({
         transcriptRef.current += finalTranscript;
       }
 
-      if (interimTranscript) {
+      if (interimTranscript || finalTranscript) {
         setIsTranscribing(true);
       }
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      console.error("Speech recognition error:", event.error);
+      
       // Ignore aborted errors when stopping intentionally
       if (event.error === "aborted") {
         return;
       }
       
-      console.error("Speech recognition error:", event.error);
+      isRecordingRef.current = false;
       setIsRecording(false);
       setIsTranscribing(false);
       
       if (event.error === "not-allowed") {
         onErrorRef.current?.("Microphone access denied. Please allow microphone access.");
       } else if (event.error === "no-speech") {
-        onErrorRef.current?.("No speech detected. Please try again.");
+        // Don't show error for no-speech, just return the transcript if any
+        if (transcriptRef.current.trim()) {
+          onTranscriptionRef.current?.(transcriptRef.current.trim());
+        }
       } else {
         onErrorRef.current?.(`Speech recognition error: ${event.error}`);
       }
     };
 
     recognition.onend = () => {
+      console.log("Speech recognition ended, transcript:", transcriptRef.current);
+      isRecordingRef.current = false;
       setIsRecording(false);
       setIsTranscribing(false);
       
@@ -138,11 +149,15 @@ export function useVoiceRecorder({
     // Cleanup only on unmount
     return () => {
       if (recognitionRef.current) {
-        recognitionRef.current.abort();
+        try {
+          recognitionRef.current.abort();
+        } catch (e) {
+          // Ignore errors during cleanup
+        }
         recognitionRef.current = null;
       }
     };
-  }, [language]); // Only re-create when language changes
+  }, [language]);
 
   const startRecording = useCallback(() => {
     if (!isSupported) {
@@ -150,34 +165,53 @@ export function useVoiceRecorder({
       return;
     }
 
-    if (recognitionRef.current && !isRecording) {
-      try {
-        transcriptRef.current = "";
-        recognitionRef.current.start();
-      } catch (error: any) {
-        // Handle case where recognition is already started
-        if (error.message?.includes("already started")) {
-          return;
-        }
-        console.error("Failed to start recording:", error);
-        onErrorRef.current?.("Failed to start recording. Please try again.");
-      }
+    if (!recognitionRef.current) {
+      onErrorRef.current?.("Speech recognition not initialized");
+      return;
     }
-  }, [isSupported, isRecording]);
+
+    if (isRecordingRef.current) {
+      console.log("Already recording, ignoring start request");
+      return;
+    }
+
+    try {
+      transcriptRef.current = "";
+      recognitionRef.current.start();
+    } catch (error: any) {
+      // Handle case where recognition is already started
+      if (error.message?.includes("already started")) {
+        console.log("Recognition already started");
+        return;
+      }
+      console.error("Failed to start recording:", error);
+      onErrorRef.current?.("Failed to start recording. Please try again.");
+    }
+  }, [isSupported]);
 
   const stopRecording = useCallback(() => {
-    if (recognitionRef.current && isRecording) {
-      recognitionRef.current.stop();
+    if (recognitionRef.current && isRecordingRef.current) {
+      console.log("Stopping speech recognition");
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {
+        console.error("Error stopping recognition:", e);
+        // Force state reset if stop fails
+        isRecordingRef.current = false;
+        setIsRecording(false);
+        setIsTranscribing(false);
+      }
     }
-  }, [isRecording]);
+  }, []);
 
   const toggleRecording = useCallback(() => {
-    if (isRecording) {
+    console.log("Toggle recording, current state:", isRecordingRef.current);
+    if (isRecordingRef.current) {
       stopRecording();
     } else {
       startRecording();
     }
-  }, [isRecording, startRecording, stopRecording]);
+  }, [startRecording, stopRecording]);
 
   return {
     isRecording,
