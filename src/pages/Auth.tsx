@@ -36,39 +36,26 @@ export default function Auth() {
         if (error) throw error;
         navigate("/");
       } else {
-        const { data, error } = await supabase.auth.signUp({
+        // Pass role and profile data via user metadata - the database trigger will create profile and role
+        const { error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             emailRedirectTo: window.location.origin,
+            data: {
+              full_name: fullName,
+              employee_id: employeeId || null,
+              role: selectedRole,
+            },
           },
         });
 
         if (error) throw error;
 
-        if (data.user) {
-          // Create profile
-          const { error: profileError } = await supabase.from("profiles").insert({
-            user_id: data.user.id,
-            full_name: fullName,
-            employee_id: employeeId || null,
-          });
-
-          if (profileError) throw profileError;
-
-          // Create role
-          const { error: roleError } = await supabase.from("user_roles").insert({
-            user_id: data.user.id,
-            role: selectedRole,
-          });
-
-          if (roleError) throw roleError;
-
-          toast({
-            title: "Account created!",
-            description: "Please check your email to verify your account.",
-          });
-        }
+        toast({
+          title: "Account created!",
+          description: "Please check your email to verify your account.",
+        });
       }
     } catch (error: any) {
       toast({
