@@ -13,42 +13,67 @@ interface Question {
 interface SafetyQuizProps {
   questions: Question[];
   onComplete: (correctAnswers: number, totalQuestions: number) => void;
-  onFail: () => void;
+  onFail: (correctAnswers: number, totalQuestions: number) => void;
   questionCount?: number;
 }
 
 export function SafetyQuiz({ questions, onComplete, onFail, questionCount }: SafetyQuizProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
+  const [shuffledQuestions, setShuffledQuestions] = useState<Question[]>([]);
   
-  // Sort and limit questions
-  const sortedQuestions = [...questions]
-    .sort((a, b) => a.order_index - b.order_index)
-    .slice(0, questionCount || questions.length);
+  // Shuffle and limit questions on mount
+  useState(() => {
+    const shuffled = [...questions]
+      .sort(() => Math.random() - 0.5)
+      .slice(0, questionCount || questions.length);
+    setShuffledQuestions(shuffled);
+  });
+
+  // Initialize shuffled questions when questions change
+  if (shuffledQuestions.length === 0 && questions.length > 0) {
+    const shuffled = [...questions]
+      .sort(() => Math.random() - 0.5)
+      .slice(0, questionCount || questions.length);
+    setShuffledQuestions(shuffled);
+  }
   
-  const currentQuestion = sortedQuestions[currentIndex];
-  const progress = ((currentIndex + 1) / sortedQuestions.length) * 100;
+  const currentQuestion = shuffledQuestions[currentIndex];
+  const totalQuestions = shuffledQuestions.length;
+  const progress = totalQuestions > 0 ? ((currentIndex + 1) / totalQuestions) * 100 : 0;
 
   const handleAnswer = (answeredYes: boolean) => {
+    if (!currentQuestion) return;
+    
     const isCorrect = answeredYes === currentQuestion.correct_answer;
     
     if (!isCorrect) {
-      // Wrong answer - fail immediately
-      onFail();
+      // Wrong answer - fail immediately, pass current correct count
+      onFail(correctCount, totalQuestions);
       return;
     }
     
     const newCorrectCount = correctCount + 1;
     setCorrectCount(newCorrectCount);
     
-    if (currentIndex < sortedQuestions.length - 1) {
+    if (currentIndex < totalQuestions - 1) {
       // Move to next question
       setCurrentIndex(currentIndex + 1);
     } else {
       // Quiz completed successfully
-      onComplete(newCorrectCount, sortedQuestions.length);
+      onComplete(newCorrectCount, totalQuestions);
     }
   };
+
+  if (!currentQuestion) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 animate-fade-in">
+        <div className="text-center py-12">
+          <p className="text-lg text-muted-foreground">Loading questions...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto px-4 animate-fade-in">
@@ -59,7 +84,7 @@ export function SafetyQuiz({ questions, onComplete, onFail, questionCount }: Saf
             Safety Check Progress
           </span>
           <span className="text-lg font-bold">
-            Step {currentIndex + 1} of {sortedQuestions.length}
+            Step {currentIndex + 1} of {totalQuestions}
           </span>
         </div>
         <div className="progress-industrial">
@@ -108,7 +133,7 @@ export function SafetyQuiz({ questions, onComplete, onFail, questionCount }: Saf
 
       {/* Question Indicators */}
       <div className="flex justify-center gap-2 mt-8">
-        {sortedQuestions.map((_, index) => (
+        {shuffledQuestions.map((_, index) => (
           <div
             key={index}
             className={cn(

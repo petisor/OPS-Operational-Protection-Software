@@ -2,10 +2,9 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, BookOpen, AlertTriangle, ClipboardCheck, MessageCircle, Lock, CheckCircle } from "lucide-react";
+import { ArrowLeft, BookOpen, AlertTriangle, ClipboardCheck, MessageCircle, Lock, CheckCircle, Image as ImageIcon } from "lucide-react";
 
 interface Machine {
   id: string;
@@ -109,6 +108,9 @@ export default function LearningEnvironment() {
       case "live-assistance":
         navigate(`/learn/${machineId}/chat`);
         break;
+      case "visual-support":
+        navigate(`/learn/${machineId}/visuals`);
+        break;
     }
   };
 
@@ -128,8 +130,11 @@ export default function LearningEnvironment() {
       icon: BookOpen,
       completed: progress?.instructions_completed,
       locked: false,
-      color: "text-blue-500",
-      bgColor: "bg-blue-500/10",
+      iconBgColor: "bg-primary/20",
+      iconColor: "text-primary",
+      badgeText: "Start Here",
+      badgeBgColor: "bg-primary/20",
+      badgeTextColor: "text-primary",
     },
     {
       id: "warnings",
@@ -138,8 +143,11 @@ export default function LearningEnvironment() {
       icon: AlertTriangle,
       completed: progress?.warnings_completed,
       locked: false,
-      color: "text-amber-500",
-      bgColor: "bg-amber-500/10",
+      iconBgColor: "bg-warning/20",
+      iconColor: "text-warning",
+      badgeText: "Required",
+      badgeBgColor: "bg-warning/20",
+      badgeTextColor: "text-warning",
     },
     {
       id: "quiz",
@@ -148,8 +156,24 @@ export default function LearningEnvironment() {
       icon: ClipboardCheck,
       completed: false,
       locked: !progress?.warnings_completed,
-      color: "text-green-500",
-      bgColor: "bg-green-500/10",
+      iconBgColor: "bg-success/20",
+      iconColor: "text-success",
+      badgeText: progress?.warnings_completed ? "Ready" : "Locked",
+      badgeBgColor: progress?.warnings_completed ? "bg-success/20" : "bg-muted",
+      badgeTextColor: progress?.warnings_completed ? "text-success" : "text-muted-foreground",
+    },
+    {
+      id: "visual-support",
+      title: "Visual Support",
+      description: "Generate visual guides and illustrations based on the machine manual.",
+      icon: ImageIcon,
+      completed: false,
+      locked: false,
+      iconBgColor: "bg-blue-500/20",
+      iconColor: "text-blue-500",
+      badgeText: "AI Generated",
+      badgeBgColor: "bg-blue-500/20",
+      badgeTextColor: "text-blue-500",
     },
     {
       id: "live-assistance",
@@ -158,8 +182,11 @@ export default function LearningEnvironment() {
       icon: MessageCircle,
       completed: false,
       locked: false,
-      color: "text-purple-500",
-      bgColor: "bg-purple-500/10",
+      iconBgColor: "bg-purple-500/20",
+      iconColor: "text-purple-500",
+      badgeText: "AI Powered",
+      badgeBgColor: "bg-purple-500/20",
+      badgeTextColor: "text-purple-500",
     },
   ];
 
@@ -177,7 +204,7 @@ export default function LearningEnvironment() {
           Back to Dashboard
         </Button>
 
-        <div className="mb-8">
+        <div className="text-center mb-8">
           <h1 className="text-3xl md:text-4xl font-black mb-2">
             Learning Environment
           </h1>
@@ -186,51 +213,42 @@ export default function LearningEnvironment() {
           </p>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {categories.map((category) => {
             const Icon = category.icon;
             const isLocked = category.locked;
             const isCompleted = category.completed;
 
             return (
-              <Card
+              <button
                 key={category.id}
-                className={`relative cursor-pointer transition-all hover:shadow-lg ${
-                  isLocked ? "opacity-60" : ""
-                } ${isCompleted ? "border-green-500/50" : ""}`}
                 onClick={() => !isLocked && handleCategoryClick(category.id)}
+                disabled={isLocked}
+                className={`card-industrial p-8 flex flex-col items-center gap-4 transition-all text-left ${
+                  isLocked 
+                    ? "opacity-60 cursor-not-allowed" 
+                    : `hover:border-primary cursor-pointer`
+                } ${isCompleted ? "border-success/50" : ""}`}
               >
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className={`p-3 rounded-lg ${category.bgColor}`}>
-                      <Icon className={`h-6 w-6 ${category.color}`} />
-                    </div>
-                    {isLocked && (
-                      <Lock className="h-5 w-5 text-muted-foreground" />
-                    )}
-                    {isCompleted && (
-                      <CheckCircle className="h-5 w-5 text-green-500" />
-                    )}
-                  </div>
-                  <CardTitle className="text-xl mt-3">{category.title}</CardTitle>
-                  <CardDescription>{category.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {isLocked ? (
-                    <p className="text-sm text-muted-foreground">
-                      Complete the Warnings section to unlock
-                    </p>
-                  ) : (
-                    <Button
-                      variant={isCompleted ? "outline" : "default"}
-                      className="w-full"
-                      disabled={isLocked}
-                    >
-                      {isCompleted ? "Review Again" : "Start"}
-                    </Button>
+                <div className={`w-20 h-20 rounded-full ${category.iconBgColor} flex items-center justify-center relative`}>
+                  <Icon className={`h-10 w-10 ${category.iconColor}`} />
+                  {isCompleted && (
+                    <CheckCircle className="absolute -top-1 -right-1 h-6 w-6 text-success bg-background rounded-full" />
                   )}
-                </CardContent>
-              </Card>
+                  {isLocked && (
+                    <Lock className="absolute -top-1 -right-1 h-6 w-6 text-muted-foreground bg-background rounded-full p-0.5" />
+                  )}
+                </div>
+                <h2 className="text-2xl font-black text-center">{category.title}</h2>
+                <p className="text-muted-foreground text-center">
+                  {category.description}
+                </p>
+                <div className={`mt-2 px-4 py-2 ${category.badgeBgColor} rounded-sm`}>
+                  <span className={`font-bold ${category.badgeTextColor}`}>
+                    {isCompleted ? "Completed" : category.badgeText}
+                  </span>
+                </div>
+              </button>
             );
           })}
         </div>

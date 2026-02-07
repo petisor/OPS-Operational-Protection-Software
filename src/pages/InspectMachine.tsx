@@ -115,14 +115,14 @@ export default function InspectMachine() {
     setQuizState("success");
   };
 
-  const handleQuizFail = async () => {
+  const handleQuizFail = async (correctAnswers: number, totalQuestions: number) => {
     if (user && machine && selectedCategory) {
       await supabase.from("safety_logs").insert({
         employee_id: user.id,
         machine_id: machine.id,
         status: "failed",
-        correct_answers: 0,
-        total_questions: questions.length,
+        correct_answers: correctAnswers,
+        total_questions: totalQuestions,
         category: selectedCategory,
       });
     }

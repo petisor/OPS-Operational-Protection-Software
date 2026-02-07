@@ -18,6 +18,7 @@ import MachineInstructions from "./pages/MachineInstructions";
 import MachineWarnings from "./pages/MachineWarnings";
 import MachineLearningQuiz from "./pages/MachineLearningQuiz";
 import MachineChat from "./pages/MachineChat";
+import MachineVisuals from "./pages/MachineVisuals";
 import AdminWarnings from "./pages/AdminWarnings";
 import NotFound from "./pages/NotFound";
 
@@ -46,6 +47,7 @@ const App = () => (
             <Route path="/learn/:machineId/warnings" element={<MachineWarnings />} />
             <Route path="/learn/:machineId/quiz" element={<MachineLearningQuiz />} />
             <Route path="/learn/:machineId/chat" element={<MachineChat />} />
+            <Route path="/learn/:machineId/visuals" element={<MachineVisuals />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
