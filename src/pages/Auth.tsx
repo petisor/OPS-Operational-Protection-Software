@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Shield, User, Lock, Mail, IdCard, UserCog, Eye, EyeOff } from "lucide-react";
+import { Shield, User, Lock, Mail, IdCard, UserCog, Eye, EyeOff, Building } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -17,6 +17,7 @@ export default function Auth() {
   const [showPassword, setShowPassword] = useState(false);
   const [fullName, setFullName] = useState("");
   const [employeeId, setEmployeeId] = useState("");
+  const [employerId, setEmployerId] = useState("");
   const [selectedRole, setSelectedRole] = useState<UserRole>("user");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -36,6 +37,11 @@ export default function Auth() {
         if (error) throw error;
         navigate("/");
       } else {
+        // Validate employer_id for workers
+        if (selectedRole === "user" && !employerId.trim()) {
+          throw new Error("Employer ID is required for worker accounts");
+        }
+
         // Pass role and profile data via user metadata - the database trigger will create profile and role
         const { error } = await supabase.auth.signUp({
           email,
@@ -44,7 +50,8 @@ export default function Auth() {
             emailRedirectTo: window.location.origin,
             data: {
               full_name: fullName,
-              employee_id: employeeId || null,
+              employee_id: selectedRole === "admin" ? employeeId || null : null,
+              employer_id: selectedRole === "user" ? employerId.trim().toUpperCase() : null,
               role: selectedRole,
             },
           },
@@ -76,9 +83,9 @@ export default function Auth() {
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-secondary mb-4">
             <Shield className="h-12 w-12 text-primary" />
           </div>
-          <h1 className="text-3xl font-black">SITE SAFE</h1>
+          <h1 className="text-3xl font-black">OPS</h1>
           <p className="text-muted-foreground text-lg mt-2">
-            Industrial Safety & Compliance
+            Operation Protection Software
           </p>
         </div>
 
@@ -111,19 +118,32 @@ export default function Auth() {
 
                 <div className="space-y-2">
                   <Label htmlFor="employeeId" className="text-lg font-semibold">
-                    Employee ID (Optional)
+                    {selectedRole === "admin" ? "Employee ID (Optional)" : "Employer ID"}
                   </Label>
                   <div className="relative">
-                    <IdCard className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    {selectedRole === "admin" ? (
+                      <IdCard className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    ) : (
+                      <Building className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    )}
                     <Input
                       id="employeeId"
                       type="text"
-                      value={employeeId}
-                      onChange={(e) => setEmployeeId(e.target.value)}
+                      value={selectedRole === "admin" ? employeeId : employerId}
+                      onChange={(e) => selectedRole === "admin" 
+                        ? setEmployeeId(e.target.value) 
+                        : setEmployerId(e.target.value.toUpperCase())
+                      }
                       className="input-industrial pl-12"
-                      placeholder="EMP-12345"
+                      placeholder={selectedRole === "admin" ? "EMP-12345" : "Enter your employer's ID"}
+                      required={selectedRole === "user"}
                     />
                   </div>
+                  {selectedRole === "user" && (
+                    <p className="text-sm text-muted-foreground">
+                      Ask your administrator for the Employer ID
+                    </p>
+                  )}
                 </div>
 
                 {/* Role Selection */}

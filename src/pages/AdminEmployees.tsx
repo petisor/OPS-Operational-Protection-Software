@@ -55,12 +55,20 @@ interface MachineAccess {
   machine_id: string;
 }
 
+interface WarningAcknowledgment {
+  machine_id: string;
+  warning_count: number;
+  acknowledged_count: number;
+}
+
 interface CertificationStatus {
   machineId: string;
   machineName: string;
   lastCheck: Date | null;
   isOverdue: boolean;
   status: "safe" | "failed" | "none";
+  warningsAccepted: boolean;
+  warningProgress: string;
 }
 
 export default function AdminEmployees() {
@@ -74,6 +82,7 @@ export default function AdminEmployees() {
   const [employeeLogs, setEmployeeLogs] = useState<SafetyLog[]>([]);
   const [employeeAccess, setEmployeeAccess] = useState<string[]>([]);
   const [certificationStatus, setCertificationStatus] = useState<CertificationStatus[]>([]);
+  const [warningAcks, setWarningAcks] = useState<WarningAcknowledgment[]>([]);
   const [accessDialogOpen, setAccessDialogOpen] = useState(false);
   const [accessEmployee, setAccessEmployee] = useState<Employee | null>(null);
   const [warningDialogOpen, setWarningDialogOpen] = useState(false);
@@ -158,7 +167,54 @@ export default function AdminEmployees() {
     }
   };
 
-  const calculateCertificationStatus = (logs: SafetyLog[], access: string[]) => {
+  const fetchWarningAcknowledgments = async (employeeId: string, accessList: string[]) => {
+    // Get all approved warnings for machines the employee has access to
+    const { data: warnings } = await supabase
+      .from("machine_warnings")
+      .select("id, machine_id")
+      .in("machine_id", accessList)
+      .eq("is_approved", true);
+
+    if (!warnings || warnings.length === 0) {
+      setWarningAcks([]);
+      return;
+    }
+
+    // Get acknowledgments for this user
+    const { data: acks } = await supabase
+      .from("user_warning_acknowledgments")
+      .select("warning_id, read_acknowledged, liability_acknowledged")
+      .eq("user_id", employeeId)
+      .in("warning_id", warnings.map(w => w.id));
+
+    // Group by machine
+    const machineWarnings = new Map<string, { total: number; acknowledged: number }>();
+    
+    warnings.forEach(w => {
+      const current = machineWarnings.get(w.machine_id) || { total: 0, acknowledged: 0 };
+      current.total++;
+      
+      const ack = acks?.find(a => a.warning_id === w.id);
+      if (ack?.read_acknowledged && ack?.liability_acknowledged) {
+        current.acknowledged++;
+      }
+      
+      machineWarnings.set(w.machine_id, current);
+    });
+
+    const result: WarningAcknowledgment[] = [];
+    machineWarnings.forEach((value, key) => {
+      result.push({
+        machine_id: key,
+        warning_count: value.total,
+        acknowledged_count: value.acknowledged,
+      });
+    });
+
+    setWarningAcks(result);
+  };
+
+  const calculateCertificationStatus = (logs: SafetyLog[], access: string[], warningAckData: WarningAcknowledgment[]) => {
     const statuses: CertificationStatus[] = [];
 
     access.forEach((machineId) => {
@@ -179,12 +235,22 @@ export default function AdminEmployees() {
         status = lastLog.status === "safe" ? "safe" : "failed";
       }
 
+      const warningAck = warningAckData.find(w => w.machine_id === machineId);
+      const warningsAccepted = warningAck 
+        ? warningAck.acknowledged_count === warningAck.warning_count && warningAck.warning_count > 0
+        : false;
+      const warningProgress = warningAck 
+        ? `${warningAck.acknowledged_count}/${warningAck.warning_count}` 
+        : "0/0";
+
       statuses.push({
         machineId,
         machineName: machine.name,
         lastCheck,
         isOverdue,
         status,
+        warningsAccepted,
+        warningProgress,
       });
     });
 
@@ -193,17 +259,26 @@ export default function AdminEmployees() {
 
   const handleViewEmployee = async (employee: Employee) => {
     setSelectedEmployee(employee);
-    await Promise.all([
+    const [, accessData] = await Promise.all([
       fetchEmployeeLogs(employee.user_id),
-      fetchEmployeeAccess(employee.user_id),
+      fetchEmployeeAccess(employee.user_id).then(() => employeeAccess),
     ]);
   };
 
   useEffect(() => {
+    const loadWarningData = async () => {
+      if (selectedEmployee && employeeAccess.length > 0) {
+        await fetchWarningAcknowledgments(selectedEmployee.user_id, employeeAccess);
+      }
+    };
+    loadWarningData();
+  }, [selectedEmployee, employeeAccess]);
+
+  useEffect(() => {
     if (selectedEmployee && employeeLogs.length >= 0 && employeeAccess.length > 0) {
-      calculateCertificationStatus(employeeLogs, employeeAccess);
+      calculateCertificationStatus(employeeLogs, employeeAccess, warningAcks);
     }
-  }, [employeeLogs, employeeAccess, machines]);
+  }, [employeeLogs, employeeAccess, machines, warningAcks]);
 
   const handleManageAccess = async (employee: Employee) => {
     setAccessEmployee(employee);
@@ -393,26 +468,34 @@ export default function AdminEmployees() {
                       {certificationStatus.map((cert) => (
                         <div
                           key={cert.machineId}
-                          className={`flex items-center justify-between p-3 rounded-sm ${
+                          className={`p-3 rounded-sm ${
                             cert.isOverdue || cert.status === "failed"
                               ? "bg-destructive/10"
                               : "bg-success/10"
                           }`}
                         >
-                          <span className="font-medium">{cert.machineName}</span>
-                          <div className="flex items-center gap-2">
-                            {cert.lastCheck ? (
-                              <span className="text-sm text-muted-foreground">
-                                {format(cert.lastCheck, "MMM d, yyyy")}
-                              </span>
-                            ) : (
-                              <span className="text-sm text-muted-foreground">Never</span>
-                            )}
-                            {cert.isOverdue || cert.status === "failed" ? (
-                              <AlertTriangle className="h-5 w-5 text-destructive" />
-                            ) : (
-                              <CheckCircle className="h-5 w-5 text-success" />
-                            )}
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium">{cert.machineName}</span>
+                            <div className="flex items-center gap-2">
+                              {cert.lastCheck ? (
+                                <span className="text-sm text-muted-foreground">
+                                  {format(cert.lastCheck, "MMM d, yyyy")}
+                                </span>
+                              ) : (
+                                <span className="text-sm text-muted-foreground">Never</span>
+                              )}
+                              {cert.isOverdue || cert.status === "failed" ? (
+                                <AlertTriangle className="h-5 w-5 text-destructive" />
+                              ) : (
+                                <CheckCircle className="h-5 w-5 text-success" />
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/50">
+                            <span className="text-sm text-muted-foreground">Warnings Accepted</span>
+                            <span className={`text-sm font-bold ${cert.warningsAccepted ? "text-success" : "text-warning"}`}>
+                              {cert.warningProgress} {cert.warningsAccepted ? "✓" : ""}
+                            </span>
                           </div>
                         </div>
                       ))}
