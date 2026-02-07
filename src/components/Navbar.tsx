@@ -1,5 +1,5 @@
 import { User, Settings, LogOut, Shield, ChevronDown } from "lucide-react";
-import logoImage from "@/assets/logo.jpeg";
+import logoImage from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
