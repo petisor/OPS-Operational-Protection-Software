@@ -8,7 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { ArrowLeft, CheckCircle, ChevronRight, ChevronLeft, Pencil, Save, X, Plus, Trash2 } from "lucide-react";
+import { useTranslateContentBatch } from "@/hooks/useTranslateContent";
+import { ArrowLeft, CheckCircle, ChevronRight, ChevronLeft, Pencil, Save, X, Plus, Trash2, Loader2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 
@@ -309,7 +310,13 @@ export default function MachineInstructions() {
     );
   }
 
-  const currentInstruction = instructions[currentStep];
+  // Translate instructions
+  const { items: translatedInstructions, isTranslating } = useTranslateContentBatch(
+    instructions,
+    ["title", "content"]
+  );
+
+  const currentInstruction = translatedInstructions[currentStep] || instructions[currentStep];
   const progressPercent = ((currentStep + 1) / instructions.length) * 100;
   const isLastStep = currentStep === instructions.length - 1;
 
@@ -354,7 +361,10 @@ export default function MachineInstructions() {
               <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary text-primary-foreground font-bold">
                 {currentInstruction.step_number}
               </div>
-              <CardTitle className="text-xl">{currentInstruction.title}</CardTitle>
+              <div className="flex items-center gap-2 flex-1">
+                {isTranslating && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                <CardTitle className="text-xl">{currentInstruction.title}</CardTitle>
+              </div>
             </div>
           </CardHeader>
           <CardContent>

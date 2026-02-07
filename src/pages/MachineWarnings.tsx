@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { ArrowLeft, AlertTriangle, ChevronRight, CheckCircle } from "lucide-react";
+import { useTranslateContentBatch } from "@/hooks/useTranslateContent";
+import { ArrowLeft, AlertTriangle, ChevronRight, CheckCircle, Loader2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
 interface Machine {
@@ -207,8 +208,14 @@ export default function MachineWarnings() {
     );
   }
 
-  const currentWarning = warnings[currentIndex];
-  const currentAck = acknowledgments.get(currentWarning.id);
+  // Translate warnings
+  const { items: translatedWarnings, isTranslating } = useTranslateContentBatch(
+    warnings,
+    ["title", "content"]
+  );
+
+  const currentWarning = translatedWarnings[currentIndex] || warnings[currentIndex];
+  const currentAck = acknowledgments.get(warnings[currentIndex]?.id);
   const canProceed = currentAck?.read_acknowledged && currentAck?.liability_acknowledged;
   const isLastWarning = currentIndex === warnings.length - 1;
   const progressPercent = ((currentIndex + 1) / warnings.length) * 100;
@@ -256,11 +263,14 @@ export default function MachineWarnings() {
           <CardHeader className="pb-3">
             <div className="flex items-center gap-3">
               <AlertTriangle className="h-6 w-6" />
-              <div>
+              <div className="flex-1">
                 <span className="text-xs font-bold uppercase">
                   {currentWarning.severity} {t("warnings.warning")}
                 </span>
-                <CardTitle className="text-xl">{currentWarning.title}</CardTitle>
+                <div className="flex items-center gap-2">
+                  {isTranslating && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                  <CardTitle className="text-xl">{currentWarning.title}</CardTitle>
+                </div>
               </div>
             </div>
           </CardHeader>
