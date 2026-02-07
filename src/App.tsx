@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -28,32 +29,34 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/admin" element={<Admin />} />
-            <Route path="/admin/machines" element={<AdminMachines />} />
-            <Route path="/admin/upload" element={<AdminUpload />} />
-            <Route path="/admin/employees" element={<AdminEmployees />} />
-            <Route path="/admin/machines/:machineId/content" element={<AdminWarnings />} />
-            <Route path="/inspect/:machineId" element={<InspectMachine />} />
-            <Route path="/learn/:machineId" element={<LearningEnvironment />} />
-            <Route path="/learn/:machineId/instructions" element={<MachineInstructions />} />
-            <Route path="/learn/:machineId/warnings" element={<MachineWarnings />} />
-            <Route path="/learn/:machineId/quiz" element={<MachineLearningQuiz />} />
-            <Route path="/learn/:machineId/chat" element={<MachineChat />} />
-            <Route path="/learn/:machineId/visuals" element={<MachineVisuals />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-          <TextToSpeech />
-        </BrowserRouter>
-      </TooltipProvider>
+      <LanguageProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/admin" element={<Admin />} />
+              <Route path="/admin/machines" element={<AdminMachines />} />
+              <Route path="/admin/upload" element={<AdminUpload />} />
+              <Route path="/admin/employees" element={<AdminEmployees />} />
+              <Route path="/admin/machines/:machineId/content" element={<AdminWarnings />} />
+              <Route path="/inspect/:machineId" element={<InspectMachine />} />
+              <Route path="/learn/:machineId" element={<LearningEnvironment />} />
+              <Route path="/learn/:machineId/instructions" element={<MachineInstructions />} />
+              <Route path="/learn/:machineId/warnings" element={<MachineWarnings />} />
+              <Route path="/learn/:machineId/quiz" element={<MachineLearningQuiz />} />
+              <Route path="/learn/:machineId/chat" element={<MachineChat />} />
+              <Route path="/learn/:machineId/visuals" element={<MachineVisuals />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+            <TextToSpeech />
+          </BrowserRouter>
+        </TooltipProvider>
+      </LanguageProvider>
     </AuthProvider>
   </QueryClientProvider>
 );

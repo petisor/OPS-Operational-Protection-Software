@@ -10,6 +10,8 @@ import {
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { LanguageSelector } from "@/components/LanguageSelector";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface NavbarProps {
   userName?: string;
@@ -19,6 +21,7 @@ interface NavbarProps {
 export function Navbar({ userName = "Worker", isAdmin = false }: NavbarProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -48,6 +51,7 @@ export function Navbar({ userName = "Worker", isAdmin = false }: NavbarProps) {
       </div>
 
       <div className="flex items-center gap-2">
+        <LanguageSelector />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -66,7 +70,7 @@ export function Navbar({ userName = "Worker", isAdmin = false }: NavbarProps) {
             <div className="px-4 py-3 border-b border-border">
               <p className="text-lg font-bold">{userName}</p>
               <p className="text-sm text-muted-foreground">
-                {isAdmin ? "Administrator" : "Worker"}
+                {isAdmin ? t("nav.administrator") : t("nav.worker")}
               </p>
             </div>
             <DropdownMenuItem
@@ -74,14 +78,14 @@ export function Navbar({ userName = "Worker", isAdmin = false }: NavbarProps) {
               onClick={() => navigate("/profile")}
             >
               <User className="mr-3 h-5 w-5" />
-              My Profile
+              {t("nav.myProfile")}
             </DropdownMenuItem>
             <DropdownMenuItem
               className="min-h-[48px] text-lg cursor-pointer"
               onClick={() => navigate("/settings")}
             >
               <Settings className="mr-3 h-5 w-5" />
-              Settings
+              {t("nav.settings")}
             </DropdownMenuItem>
             {isAdmin && (
               <>
@@ -91,7 +95,7 @@ export function Navbar({ userName = "Worker", isAdmin = false }: NavbarProps) {
                   onClick={() => navigate("/admin")}
                 >
                   <Shield className="mr-3 h-5 w-5" />
-                  Admin Panel
+                  {t("nav.adminPanel")}
                 </DropdownMenuItem>
               </>
             )}
@@ -101,7 +105,7 @@ export function Navbar({ userName = "Worker", isAdmin = false }: NavbarProps) {
               onClick={handleLogout}
             >
               <LogOut className="mr-3 h-5 w-5" />
-              Logout
+              {t("nav.logout")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
