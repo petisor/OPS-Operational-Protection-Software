@@ -44,6 +44,7 @@ export default function AdminUpload() {
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [generatingQuestions, setGeneratingQuestions] = useState<string | null>(null);
+  const [generatingSafetyInfo, setGeneratingSafetyInfo] = useState(false);
 
   // Machine details
   const [name, setName] = useState("");
@@ -141,6 +142,47 @@ export default function AdminUpload() {
     }
   };
 
+  const generateSafetyInfo = async () => {
+    if (!name) {
+      toast({
+        title: "Missing Machine Name",
+        description: "Please enter a machine name first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setGeneratingSafetyInfo(true);
+
+    try {
+      const response = await supabase.functions.invoke("generate-safety-info", {
+        body: {
+          machineName: name,
+          description: description || undefined,
+          manualContent: manualContent || undefined,
+        },
+      });
+
+      if (response.error) throw response.error;
+
+      setCommonInjury(response.data.common_injury);
+      setSafetyWarning(response.data.safety_warning);
+
+      toast({
+        title: "Safety Info Generated",
+        description: "Common injury and safety warning have been filled in",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Generation Failed",
+        description: error.message || "Failed to generate safety info",
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingSafetyInfo(false);
+    }
+  };
+
   const addManualQuestion = (category: "safety" | "usage") => {
     const newQuestion: GeneratedQuestion = {
       question: "",
@@ -206,7 +248,7 @@ export default function AdminUpload() {
     setSaving(true);
 
     try {
-      // Create machine
+      // Create machine with created_by set to current user
       const { data: machine, error: machineError } = await supabase
         .from("machines")
         .insert({
@@ -217,6 +259,7 @@ export default function AdminUpload() {
           safety_warning: safetyWarning,
           recertification_days: recertificationDays,
           question_count: questionCount,
+          created_by: user?.id,
         })
         .select()
         .single();
@@ -502,7 +545,28 @@ export default function AdminUpload() {
 
           {/* Safety Info */}
           <div className="card-industrial p-6 space-y-4">
-            <h2 className="text-xl font-bold">Safety Information</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold">Safety Information</h2>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={generateSafetyInfo}
+                disabled={generatingSafetyInfo || !name}
+              >
+                {generatingSafetyInfo ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4 mr-1" />
+                    Generate with AI
+                  </>
+                )}
+              </Button>
+            </div>
 
             <div className="space-y-2">
               <Label className="text-lg">Common Injury Type *</Label>

@@ -261,6 +261,7 @@ export type Database = {
         Row: {
           common_injury: string
           created_at: string
+          created_by: string | null
           description: string | null
           icon: string
           id: string
@@ -274,6 +275,7 @@ export type Database = {
         Insert: {
           common_injury?: string
           created_at?: string
+          created_by?: string | null
           description?: string | null
           icon?: string
           id?: string
@@ -287,6 +289,7 @@ export type Database = {
         Update: {
           common_injury?: string
           created_at?: string
+          created_by?: string | null
           description?: string | null
           icon?: string
           id?: string
