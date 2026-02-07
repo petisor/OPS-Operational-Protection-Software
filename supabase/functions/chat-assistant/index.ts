@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import OpenAI from "https://esm.sh/openai";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,19 +19,15 @@ serve(async (req) => {
       throw new Error("Missing required fields: machineId, message");
     }
 
-    const AZERION_API_KEY = Deno.env.get("AZERION_API_KEY");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-    if (!AZERION_API_KEY || !supabaseUrl || !supabaseServiceKey) {
+    if (!LOVABLE_API_KEY || !supabaseUrl || !supabaseServiceKey) {
       throw new Error("Configuration missing (API Key or Supabase)");
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const client = new OpenAI({
-      baseURL: "https://api.azerion.ai/v1",
-      apiKey: AZERION_API_KEY,
-    });
 
     const { data: machine } = await supabase
       .from("machines")
@@ -87,28 +82,73 @@ Important guidelines:
 - If asked about something not covered in the material, suggest consulting the full manual or a supervisor
 - Never give advice that could be dangerous`;
 
-    const response = await client.chat.completions.create({
-      model: "gemini-3-pro-preview",
-      messages: [
-        { role: "system", content: systemPrompt },
-        ...(conversationHistory || []),
-        { role: "user", content: message },
-      ],
-      max_tokens: 1024,
-      temperature: 0.7,
-      stream: true,
+    const messages = [
+      { role: "system", content: systemPrompt },
+      ...(conversationHistory || []),
+      { role: "user", content: message },
+    ];
+
+    // Use Lovable AI API
+    const response = await fetch("https://api.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages,
+        max_tokens: 1024,
+        temperature: 0.7,
+        stream: true,
+      }),
     });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Lovable AI API error:", errorText);
+      throw new Error(`AI API error: ${response.status}`);
+    }
+
+    // Stream the response
+    const reader = response.body?.getReader();
+    if (!reader) {
+      throw new Error("No response body");
+    }
 
     const stream = new ReadableStream({
       async start(controller) {
+        const decoder = new TextDecoder();
         const encoder = new TextEncoder();
-        for await (const chunk of response) {
-          const content = chunk.choices[0]?.delta?.content || "";
-          if (content) {
-            controller.enqueue(encoder.encode(content));
+        
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            
+            const chunk = decoder.decode(value, { stream: true });
+            const lines = chunk.split('\n');
+            
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const data = line.slice(6);
+                if (data === '[DONE]') continue;
+                
+                try {
+                  const parsed = JSON.parse(data);
+                  const content = parsed.choices?.[0]?.delta?.content || "";
+                  if (content) {
+                    controller.enqueue(encoder.encode(content));
+                  }
+                } catch (e) {
+                  // Skip malformed JSON
+                }
+              }
+            }
           }
+        } finally {
+          controller.close();
         }
-        controller.close();
       },
     });
 
