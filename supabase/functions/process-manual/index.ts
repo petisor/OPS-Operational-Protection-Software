@@ -44,17 +44,23 @@ Deno.serve(async (req) => {
     console.log(`Processing manual: ${manual.file_name} for ${machineName}`);
 
     // Get public URL for the PDF - Gemini will fetch it directly
-    const { data: urlData } = supabase.storage
-      .from("machine-manuals")
-      .getPublicUrl(manual.file_url);
-    
-    const publicUrl = urlData.publicUrl;
+    // file_url is stored as a relative path like "machine-id/filename.pdf"
+    const publicUrl = `${supabaseUrl}/storage/v1/object/public/machine-manuals/${manual.file_url}`;
     console.log(`Using public URL for AI processing: ${publicUrl}`);
+
+    // Get the Lovable API key for AI gateway authentication
+    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
+    if (!lovableApiKey) {
+      throw new Error("LOVABLE_API_KEY not configured");
+    }
 
     // Use Gemini to extract content AND generate Q&A in a single call to minimize memory usage
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "Lovable-API-Key": lovableApiKey,
+      },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
