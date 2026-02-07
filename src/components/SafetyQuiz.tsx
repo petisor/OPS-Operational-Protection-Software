@@ -7,30 +7,47 @@ interface Question {
   id: string;
   question: string;
   order_index: number;
+  correct_answer: boolean; // true = YES is correct, false = NO is correct
 }
 
 interface SafetyQuizProps {
   questions: Question[];
-  onComplete: () => void;
+  onComplete: (correctAnswers: number, totalQuestions: number) => void;
   onFail: () => void;
+  questionCount?: number;
 }
 
-export function SafetyQuiz({ questions, onComplete, onFail }: SafetyQuizProps) {
+export function SafetyQuiz({ questions, onComplete, onFail, questionCount }: SafetyQuizProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const sortedQuestions = [...questions].sort((a, b) => a.order_index - b.order_index);
+  const [correctCount, setCorrectCount] = useState(0);
+  
+  // Sort and limit questions
+  const sortedQuestions = [...questions]
+    .sort((a, b) => a.order_index - b.order_index)
+    .slice(0, questionCount || questions.length);
+  
   const currentQuestion = sortedQuestions[currentIndex];
   const progress = ((currentIndex + 1) / sortedQuestions.length) * 100;
 
-  const handleSafe = () => {
+  const handleAnswer = (answeredYes: boolean) => {
+    const isCorrect = answeredYes === currentQuestion.correct_answer;
+    
+    if (!isCorrect) {
+      // Wrong answer - fail immediately
+      onFail();
+      return;
+    }
+    
+    const newCorrectCount = correctCount + 1;
+    setCorrectCount(newCorrectCount);
+    
     if (currentIndex < sortedQuestions.length - 1) {
+      // Move to next question
       setCurrentIndex(currentIndex + 1);
     } else {
-      onComplete();
+      // Quiz completed successfully
+      onComplete(newCorrectCount, sortedQuestions.length);
     }
-  };
-
-  const handleUnsafe = () => {
-    onFail();
   };
 
   return (
@@ -70,22 +87,22 @@ export function SafetyQuiz({ questions, onComplete, onFail }: SafetyQuizProps) {
       {/* Action Buttons */}
       <div className="grid grid-cols-2 gap-4">
         <Button
-          onClick={handleUnsafe}
+          onClick={() => handleAnswer(false)}
           variant="destructive"
           size="full"
           className="uppercase font-black tracking-wide"
         >
           <XCircle className="h-8 w-8 mr-2" />
-          NO / UNSAFE
+          NO
         </Button>
         <Button
-          onClick={handleSafe}
+          onClick={() => handleAnswer(true)}
           variant="success"
           size="full"
           className="uppercase font-black tracking-wide"
         >
           <CheckCircle className="h-8 w-8 mr-2" />
-          YES / SAFE
+          YES
         </Button>
       </div>
 

@@ -2,9 +2,13 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { MachineSearch } from "@/components/MachineSearch";
 import {
   ArrowLeft,
   User,
@@ -12,6 +16,9 @@ import {
   XCircle,
   Plus,
   Truck,
+  AlertTriangle,
+  Send,
+  Bell,
 } from "lucide-react";
 import {
   Dialog,
@@ -19,7 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { format } from "date-fns";
+import { format, subDays, isAfter } from "date-fns";
 
 interface Employee {
   id: string;
@@ -31,6 +38,7 @@ interface Employee {
 interface Machine {
   id: string;
   name: string;
+  recertification_days: number;
 }
 
 interface SafetyLog {
@@ -38,10 +46,21 @@ interface SafetyLog {
   machine_id: string;
   status: string;
   timestamp: string;
+  category: string | null;
+  correct_answers: number | null;
+  total_questions: number | null;
 }
 
 interface MachineAccess {
   machine_id: string;
+}
+
+interface CertificationStatus {
+  machineId: string;
+  machineName: string;
+  lastCheck: Date | null;
+  isOverdue: boolean;
+  status: "safe" | "failed" | "none";
 }
 
 export default function AdminEmployees() {
@@ -49,12 +68,20 @@ export default function AdminEmployees() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
   const [machines, setMachines] = useState<Machine[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [employeeLogs, setEmployeeLogs] = useState<SafetyLog[]>([]);
   const [employeeAccess, setEmployeeAccess] = useState<string[]>([]);
+  const [certificationStatus, setCertificationStatus] = useState<CertificationStatus[]>([]);
   const [accessDialogOpen, setAccessDialogOpen] = useState(false);
   const [accessEmployee, setAccessEmployee] = useState<Employee | null>(null);
+  const [warningDialogOpen, setWarningDialogOpen] = useState(false);
+  const [warningEmployee, setWarningEmployee] = useState<Employee | null>(null);
+  const [warningMessage, setWarningMessage] = useState("");
+  const [warningMachine, setWarningMachine] = useState<string | null>(null);
+  const [sendingWarning, setSendingWarning] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     if (!loading) {
@@ -69,8 +96,22 @@ export default function AdminEmployees() {
     }
   }, [user, isAdmin, loading, navigate]);
 
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredEmployees(employees);
+    } else {
+      const query = searchQuery.toLowerCase();
+      setFilteredEmployees(
+        employees.filter(
+          (e) =>
+            e.full_name.toLowerCase().includes(query) ||
+            e.employee_id?.toLowerCase().includes(query)
+        )
+      );
+    }
+  }, [searchQuery, employees]);
+
   const fetchEmployees = async () => {
-    // Get all profiles with user role
     const { data: profiles, error } = await supabase
       .from("profiles")
       .select("*")
@@ -78,13 +119,14 @@ export default function AdminEmployees() {
 
     if (!error && profiles) {
       setEmployees(profiles);
+      setFilteredEmployees(profiles);
     }
   };
 
   const fetchMachines = async () => {
     const { data, error } = await supabase
       .from("machines")
-      .select("id, name")
+      .select("id, name, recertification_days")
       .order("name");
 
     if (!error && data) {
@@ -98,7 +140,7 @@ export default function AdminEmployees() {
       .select("*")
       .eq("employee_id", employeeId)
       .order("timestamp", { ascending: false })
-      .limit(20);
+      .limit(50);
 
     if (!error && data) {
       setEmployeeLogs(data);
@@ -116,15 +158,92 @@ export default function AdminEmployees() {
     }
   };
 
+  const calculateCertificationStatus = (logs: SafetyLog[], access: string[]) => {
+    const statuses: CertificationStatus[] = [];
+
+    access.forEach((machineId) => {
+      const machine = machines.find((m) => m.id === machineId);
+      if (!machine) return;
+
+      const machineLogs = logs.filter((l) => l.machine_id === machineId);
+      const lastLog = machineLogs[0];
+
+      let lastCheck: Date | null = null;
+      let isOverdue = true;
+      let status: "safe" | "failed" | "none" = "none";
+
+      if (lastLog) {
+        lastCheck = new Date(lastLog.timestamp);
+        const cutoffDate = subDays(new Date(), machine.recertification_days);
+        isOverdue = !isAfter(lastCheck, cutoffDate);
+        status = lastLog.status === "safe" ? "safe" : "failed";
+      }
+
+      statuses.push({
+        machineId,
+        machineName: machine.name,
+        lastCheck,
+        isOverdue,
+        status,
+      });
+    });
+
+    setCertificationStatus(statuses);
+  };
+
   const handleViewEmployee = async (employee: Employee) => {
     setSelectedEmployee(employee);
-    await fetchEmployeeLogs(employee.user_id);
+    await Promise.all([
+      fetchEmployeeLogs(employee.user_id),
+      fetchEmployeeAccess(employee.user_id),
+    ]);
   };
+
+  useEffect(() => {
+    if (selectedEmployee && employeeLogs.length >= 0 && employeeAccess.length > 0) {
+      calculateCertificationStatus(employeeLogs, employeeAccess);
+    }
+  }, [employeeLogs, employeeAccess, machines]);
 
   const handleManageAccess = async (employee: Employee) => {
     setAccessEmployee(employee);
     await fetchEmployeeAccess(employee.user_id);
     setAccessDialogOpen(true);
+  };
+
+  const handleOpenWarning = (employee: Employee) => {
+    setWarningEmployee(employee);
+    setWarningMessage("");
+    setWarningMachine(null);
+    setWarningDialogOpen(true);
+  };
+
+  const handleSendWarning = async () => {
+    if (!warningEmployee || !warningMessage.trim() || !user) return;
+    setSendingWarning(true);
+
+    const { error } = await supabase.from("employee_warnings").insert({
+      employee_id: warningEmployee.user_id,
+      admin_id: user.id,
+      machine_id: warningMachine,
+      message: warningMessage.trim(),
+      warning_type: "manual",
+    });
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to send warning",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Warning Sent",
+        description: `Warning sent to ${warningEmployee.full_name}`,
+      });
+      setWarningDialogOpen(false);
+    }
+    setSendingWarning(false);
   };
 
   const toggleMachineAccess = async (machineId: string) => {
@@ -133,7 +252,6 @@ export default function AdminEmployees() {
     const hasAccess = employeeAccess.includes(machineId);
 
     if (hasAccess) {
-      // Remove access
       const { error } = await supabase
         .from("machine_access")
         .delete()
@@ -145,7 +263,6 @@ export default function AdminEmployees() {
         toast({ title: "Access removed" });
       }
     } else {
-      // Grant access
       const { error } = await supabase.from("machine_access").insert({
         user_id: accessEmployee.user_id,
         machine_id: machineId,
@@ -163,6 +280,10 @@ export default function AdminEmployees() {
     return machines.find((m) => m.id === machineId)?.name || "Unknown";
   };
 
+  const getOverdueCount = () => {
+    return certificationStatus.filter((s) => s.isOverdue || s.status === "failed").length;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -175,7 +296,7 @@ export default function AdminEmployees() {
     <div className="min-h-screen bg-background">
       <Navbar userName={profile?.full_name} isAdmin={isAdmin} />
 
-      <main className="pt-20 md:pt-24 pb-8 px-4 max-w-4xl mx-auto">
+      <main className="pt-20 md:pt-24 pb-8 px-4 max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <Button
@@ -192,80 +313,156 @@ export default function AdminEmployees() {
           </p>
         </div>
 
+        {/* Search */}
+        <MachineSearch
+          onSearch={setSearchQuery}
+          placeholder="Search employees by name or ID..."
+        />
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Employee List */}
           <div className="space-y-4">
-            <h2 className="text-xl font-bold">All Employees</h2>
-            {employees.map((employee) => (
-              <div key={employee.id} className="card-industrial p-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-                    <User className="h-6 w-6" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-bold">{employee.full_name}</h3>
-                    {employee.employee_id && (
-                      <p className="text-sm text-muted-foreground">
-                        ID: {employee.employee_id}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleViewEmployee(employee)}
-                    >
-                      View
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleManageAccess(employee)}
-                    >
-                      <Truck className="h-4 w-4" />
-                    </Button>
+            <h2 className="text-xl font-bold">All Employees ({filteredEmployees.length})</h2>
+            <div className="space-y-3 max-h-[600px] overflow-y-auto">
+              {filteredEmployees.map((employee) => (
+                <div key={employee.id} className="card-industrial p-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                      <User className="h-6 w-6" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-bold">{employee.full_name}</h3>
+                      {employee.employee_id && (
+                        <p className="text-sm text-muted-foreground">
+                          ID: {employee.employee_id}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleViewEmployee(employee)}
+                      >
+                        View
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleManageAccess(employee)}
+                      >
+                        <Truck className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleOpenWarning(employee)}
+                        className="text-warning"
+                      >
+                        <Bell className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
 
-          {/* Activity Log */}
+          {/* Activity Panel */}
           <div className="space-y-4">
             <h2 className="text-xl font-bold">
               {selectedEmployee
-                ? `${selectedEmployee.full_name}'s Activity`
+                ? `${selectedEmployee.full_name}'s Profile`
                 : "Select an Employee"}
             </h2>
 
             {selectedEmployee ? (
-              employeeLogs.length > 0 ? (
-                <div className="space-y-3">
-                  {employeeLogs.map((log) => (
-                    <div
-                      key={log.id}
-                      className="card-industrial p-4 flex items-center gap-4"
-                    >
-                      {log.status === "safe" ? (
-                        <CheckCircle className="h-6 w-6 text-success shrink-0" />
-                      ) : (
-                        <XCircle className="h-6 w-6 text-destructive shrink-0" />
+              <div className="space-y-6">
+                {/* Certification Status */}
+                {certificationStatus.length > 0 && (
+                  <div className="card-industrial p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-bold">Certification Status</h3>
+                      {getOverdueCount() > 0 && (
+                        <span className="px-2 py-1 bg-destructive/20 text-destructive text-sm font-bold rounded">
+                          {getOverdueCount()} Overdue
+                        </span>
                       )}
-                      <div>
-                        <p className="font-bold">{getMachineName(log.machine_id)}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {format(new Date(log.timestamp), "MMM d, yyyy 'at' h:mm a")}
-                        </p>
-                      </div>
                     </div>
-                  ))}
+                    <div className="space-y-2">
+                      {certificationStatus.map((cert) => (
+                        <div
+                          key={cert.machineId}
+                          className={`flex items-center justify-between p-3 rounded-sm ${
+                            cert.isOverdue || cert.status === "failed"
+                              ? "bg-destructive/10"
+                              : "bg-success/10"
+                          }`}
+                        >
+                          <span className="font-medium">{cert.machineName}</span>
+                          <div className="flex items-center gap-2">
+                            {cert.lastCheck ? (
+                              <span className="text-sm text-muted-foreground">
+                                {format(cert.lastCheck, "MMM d, yyyy")}
+                              </span>
+                            ) : (
+                              <span className="text-sm text-muted-foreground">Never</span>
+                            )}
+                            {cert.isOverdue || cert.status === "failed" ? (
+                              <AlertTriangle className="h-5 w-5 text-destructive" />
+                            ) : (
+                              <CheckCircle className="h-5 w-5 text-success" />
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Activity Log */}
+                <div>
+                  <h3 className="font-bold mb-3">Recent Activity</h3>
+                  {employeeLogs.length > 0 ? (
+                    <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                      {employeeLogs.map((log) => (
+                        <div
+                          key={log.id}
+                          className="card-industrial p-4 flex items-center gap-4"
+                        >
+                          {log.status === "safe" ? (
+                            <CheckCircle className="h-6 w-6 text-success shrink-0" />
+                          ) : (
+                            <XCircle className="h-6 w-6 text-destructive shrink-0" />
+                          )}
+                          <div className="flex-1">
+                            <p className="font-bold">{getMachineName(log.machine_id)}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {format(new Date(log.timestamp), "MMM d, yyyy 'at' h:mm a")}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            {log.category && (
+                              <span className="text-xs bg-muted px-2 py-1 rounded block mb-1">
+                                {log.category}
+                              </span>
+                            )}
+                            {log.correct_answers !== null && log.total_questions !== null && (
+                              <span className="text-sm font-medium">
+                                {log.correct_answers}/{log.total_questions}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="card-industrial p-8 text-center text-muted-foreground">
+                      No activity logs found
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div className="card-industrial p-8 text-center text-muted-foreground">
-                  No activity logs found
-                </div>
-              )
+              </div>
             ) : (
               <div className="card-industrial p-8 text-center text-muted-foreground">
                 Click "View" on an employee to see their activity
@@ -283,7 +480,7 @@ export default function AdminEmployees() {
               </DialogTitle>
             </DialogHeader>
 
-            <div className="mt-4 space-y-3">
+            <div className="mt-4 space-y-3 max-h-[400px] overflow-y-auto">
               {machines.map((machine) => {
                 const hasAccess = employeeAccess.includes(machine.id);
                 return (
@@ -303,6 +500,64 @@ export default function AdminEmployees() {
                   </button>
                 );
               })}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Warning Dialog */}
+        <Dialog open={warningDialogOpen} onOpenChange={setWarningDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-2xl flex items-center gap-2">
+                <AlertTriangle className="h-6 w-6 text-warning" />
+                Send Warning to {warningEmployee?.full_name}
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="mt-4 space-y-4">
+              <div className="space-y-2">
+                <Label className="text-lg">Related Machine (Optional)</Label>
+                <select
+                  value={warningMachine || ""}
+                  onChange={(e) => setWarningMachine(e.target.value || null)}
+                  className="w-full input-industrial"
+                >
+                  <option value="">Select a machine...</option>
+                  {machines.map((machine) => (
+                    <option key={machine.id} value={machine.id}>
+                      {machine.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-lg">Warning Message</Label>
+                <Textarea
+                  value={warningMessage}
+                  onChange={(e) => setWarningMessage(e.target.value)}
+                  placeholder="Enter warning message..."
+                  className="min-h-[120px]"
+                />
+              </div>
+
+              <div className="flex gap-4 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setWarningDialogOpen(false)}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSendWarning}
+                  disabled={sendingWarning || !warningMessage.trim()}
+                  className="flex-1 btn-warning"
+                >
+                  <Send className="h-5 w-5 mr-2" />
+                  {sendingWarning ? "Sending..." : "Send Warning"}
+                </Button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>

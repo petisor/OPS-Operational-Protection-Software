@@ -5,23 +5,30 @@ import { SafetyWarningModal } from "@/components/SafetyWarningModal";
 import { SafetyQuiz } from "@/components/SafetyQuiz";
 import { SafetySuccess } from "@/components/SafetySuccess";
 import { DoNotOperate } from "@/components/DoNotOperate";
+import { QuizCategorySelect } from "@/components/QuizCategorySelect";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { ArrowLeft } from "lucide-react";
 
 interface Machine {
   id: string;
   name: string;
   common_injury: string;
   safety_warning: string;
+  question_count: number;
 }
 
 interface Question {
   id: string;
   question: string;
   order_index: number;
+  correct_answer: boolean;
+  category: "safety" | "usage";
 }
 
-type QuizState = "warning" | "quiz" | "success" | "failed" | "loading" | "error";
+type QuizState = "category" | "warning" | "quiz" | "success" | "failed" | "loading" | "error";
+type QuizCategory = "safety" | "usage";
 
 export default function InspectMachine() {
   const { machineId } = useParams<{ machineId: string }>();
@@ -30,6 +37,7 @@ export default function InspectMachine() {
 
   const [machine, setMachine] = useState<Machine | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<QuizCategory | null>(null);
   const [quizState, setQuizState] = useState<QuizState>("loading");
   const [timestamp, setTimestamp] = useState<Date>(new Date());
 
@@ -61,18 +69,27 @@ export default function InspectMachine() {
     }
 
     setMachine(machineData);
+    setQuizState("category");
+  };
 
-    // Fetch questions
-    const { data: questionData, error: questionError } = await supabase
+  const fetchQuestions = async (category: QuizCategory) => {
+    if (!machineId) return;
+
+    const { data, error } = await supabase
       .from("safety_questions")
       .select("*")
       .eq("machine_id", machineId)
+      .eq("category", category)
       .order("order_index");
 
-    if (!questionError && questionData) {
-      setQuestions(questionData);
+    if (!error && data) {
+      setQuestions(data as Question[]);
     }
+  };
 
+  const handleSelectCategory = async (category: QuizCategory) => {
+    setSelectedCategory(category);
+    await fetchQuestions(category);
     setQuizState("warning");
   };
 
@@ -80,27 +97,46 @@ export default function InspectMachine() {
     setQuizState("quiz");
   };
 
-  const handleQuizComplete = async () => {
+  const handleQuizComplete = async (correctAnswers: number, totalQuestions: number) => {
     const now = new Date();
     setTimestamp(now);
 
-    if (user && machine) {
+    if (user && machine && selectedCategory) {
       await supabase.from("safety_logs").insert({
         employee_id: user.id,
         machine_id: machine.id,
         status: "safe",
+        correct_answers: correctAnswers,
+        total_questions: totalQuestions,
+        category: selectedCategory,
       });
     }
 
     setQuizState("success");
   };
 
-  const handleQuizFail = () => {
+  const handleQuizFail = async () => {
+    if (user && machine && selectedCategory) {
+      await supabase.from("safety_logs").insert({
+        employee_id: user.id,
+        machine_id: machine.id,
+        status: "failed",
+        correct_answers: 0,
+        total_questions: questions.length,
+        category: selectedCategory,
+      });
+    }
     setQuizState("failed");
   };
 
   const handleBackToDashboard = () => {
     navigate("/");
+  };
+
+  const handleBackToCategory = () => {
+    setQuizState("category");
+    setQuestions([]);
+    setSelectedCategory(null);
   };
 
   if (loading || quizState === "loading") {
@@ -165,15 +201,43 @@ export default function InspectMachine() {
         />
       )}
 
-      {quizState === "quiz" && (
-        <main className="pt-20 md:pt-24 pb-8 px-4 max-w-4xl mx-auto">
-          <SafetyQuiz
-            questions={questions}
-            onComplete={handleQuizComplete}
-            onFail={handleQuizFail}
-          />
-        </main>
-      )}
+      <main className="pt-20 md:pt-24 pb-8 px-4 max-w-4xl mx-auto">
+        {quizState === "category" && machine && (
+          <div className="pt-8">
+            <Button
+              variant="ghost"
+              onClick={handleBackToDashboard}
+              className="mb-6 -ml-2"
+            >
+              <ArrowLeft className="h-5 w-5 mr-2" />
+              Back to Dashboard
+            </Button>
+            <QuizCategorySelect
+              machineName={machine.name}
+              onSelect={handleSelectCategory}
+            />
+          </div>
+        )}
+
+        {quizState === "quiz" && machine && (
+          <div className="pt-8">
+            <Button
+              variant="ghost"
+              onClick={handleBackToCategory}
+              className="mb-6 -ml-2"
+            >
+              <ArrowLeft className="h-5 w-5 mr-2" />
+              Back to Categories
+            </Button>
+            <SafetyQuiz
+              questions={questions}
+              questionCount={machine.question_count}
+              onComplete={handleQuizComplete}
+              onFail={handleQuizFail}
+            />
+          </div>
+        )}
+      </main>
     </div>
   );
 }
