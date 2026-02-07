@@ -1,5 +1,5 @@
 import { User, Settings, LogOut, Shield, ChevronDown } from "lucide-react";
-import helmetLogo from "@/assets/helmet-logo.png";
+import { HelmetIcon } from "@/components/HelmetIcon";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -40,7 +40,7 @@ export function Navbar({ userName = "Worker", isAdmin = false }: NavbarProps) {
   return (
     <nav className="nav-industrial">
       <div className="flex items-center gap-2">
-        <img src={helmetLogo} alt="OPS Helmet" className="h-8 w-auto md:h-10" />
+        <HelmetIcon className="h-10 w-10 md:h-12 md:w-12 text-foreground" />
         <div className="flex flex-col">
           <span className="text-lg md:text-xl font-black tracking-tight leading-none">
             OPS
