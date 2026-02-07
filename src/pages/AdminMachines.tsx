@@ -26,6 +26,8 @@ import {
   X,
   Loader2,
   Download,
+  Sparkles,
+  CheckCircle,
 } from "lucide-react";
 import {
   Dialog,
@@ -52,6 +54,7 @@ interface MachineManual {
   id: string;
   file_name: string;
   file_url: string;
+  extracted_content: string | null;
 }
 
 interface SafetyLog {
@@ -102,6 +105,7 @@ export default function AdminMachines() {
   const [machineManuals, setMachineManuals] = useState<MachineManual[]>([]);
   const [saving, setSaving] = useState(false);
   const [uploadingManual, setUploadingManual] = useState(false);
+  const [processingManual, setProcessingManual] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
@@ -214,12 +218,45 @@ export default function AdminMachines() {
   const fetchMachineManuals = async (machineId: string) => {
     const { data } = await supabase
       .from("machine_manuals")
-      .select("*")
+      .select("id, file_name, file_url, extracted_content")
       .eq("machine_id", machineId)
       .order("created_at", { ascending: false });
     
     if (data) {
       setMachineManuals(data);
+    }
+  };
+
+  const handleProcessManual = async (manual: MachineManual) => {
+    if (!editingMachine) return;
+    
+    setProcessingManual(manual.id);
+    
+    try {
+      const response = await supabase.functions.invoke("process-manual", {
+        body: {
+          manualId: manual.id,
+          machineId: editingMachine.id,
+        },
+      });
+
+      if (response.error) throw response.error;
+
+      toast({
+        title: "Manual Processed",
+        description: `Extracted content and generated ${response.data.qaPairsGenerated} Q&A pairs for AI training`,
+      });
+
+      // Refresh manuals to show updated status
+      fetchMachineManuals(editingMachine.id);
+    } catch (error: any) {
+      toast({
+        title: "Processing Failed",
+        description: error.message || "Failed to process manual",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingManual(null);
     }
   };
 
@@ -621,10 +658,28 @@ export default function AdminMachines() {
                           key={manual.id}
                           className="flex items-center justify-between p-3 bg-muted rounded-sm"
                         >
-                          <span className="text-sm font-medium truncate flex-1">
-                            {manual.file_name}
-                          </span>
-                          <div className="flex gap-2 ml-2">
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <span className="text-sm font-medium truncate">
+                              {manual.file_name}
+                            </span>
+                            {manual.extracted_content && (
+                              <CheckCircle className="h-4 w-4 text-success shrink-0" />
+                            )}
+                          </div>
+                          <div className="flex gap-1 ml-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleProcessManual(manual)}
+                              disabled={processingManual === manual.id}
+                              title="Process for AI Assistant"
+                            >
+                              {processingManual === manual.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Sparkles className="h-4 w-4" />
+                              )}
+                            </Button>
                             <Button
                               variant="ghost"
                               size="sm"

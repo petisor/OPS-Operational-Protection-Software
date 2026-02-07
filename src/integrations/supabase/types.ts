@@ -125,9 +125,55 @@ export type Database = {
           },
         ]
       }
+      machine_manual_qa: {
+        Row: {
+          answer: string
+          category: string | null
+          created_at: string
+          id: string
+          machine_id: string
+          manual_id: string | null
+          question: string
+        }
+        Insert: {
+          answer: string
+          category?: string | null
+          created_at?: string
+          id?: string
+          machine_id: string
+          manual_id?: string | null
+          question: string
+        }
+        Update: {
+          answer?: string
+          category?: string | null
+          created_at?: string
+          id?: string
+          machine_id?: string
+          manual_id?: string | null
+          question?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "machine_manual_qa_machine_id_fkey"
+            columns: ["machine_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "machine_manual_qa_manual_id_fkey"
+            columns: ["manual_id"]
+            isOneToOne: false
+            referencedRelation: "machine_manuals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       machine_manuals: {
         Row: {
           created_at: string
+          extracted_content: string | null
           file_name: string
           file_url: string
           id: string
@@ -136,6 +182,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          extracted_content?: string | null
           file_name: string
           file_url: string
           id?: string
@@ -144,6 +191,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          extracted_content?: string | null
           file_name?: string
           file_url?: string
           id?: string
