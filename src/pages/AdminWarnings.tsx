@@ -89,6 +89,15 @@ export default function AdminWarnings() {
   });
   const [savingWarning, setSavingWarning] = useState(false);
 
+  // Instruction form state
+  const [instructionDialogOpen, setInstructionDialogOpen] = useState(false);
+  const [editingInstruction, setEditingInstruction] = useState<Instruction | null>(null);
+  const [instructionForm, setInstructionForm] = useState({
+    title: "",
+    content: "",
+  });
+  const [savingInstruction, setSavingInstruction] = useState(false);
+
   useEffect(() => {
     if (!loading) {
       if (!user) {
@@ -365,6 +374,106 @@ export default function AdminWarnings() {
     }
   };
 
+  const openAddInstructionDialog = () => {
+    setEditingInstruction(null);
+    setInstructionForm({ title: "", content: "" });
+    setInstructionDialogOpen(true);
+  };
+
+  const openEditInstructionDialog = (instruction: Instruction) => {
+    setEditingInstruction(instruction);
+    setInstructionForm({
+      title: instruction.title,
+      content: instruction.content,
+    });
+    setInstructionDialogOpen(true);
+  };
+
+  const handleSaveInstruction = async () => {
+    if (!machineId) return;
+    if (!instructionForm.title.trim() || !instructionForm.content.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Title and content are required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSavingInstruction(true);
+
+    try {
+      if (editingInstruction) {
+        // Update existing instruction
+        const { error } = await supabase
+          .from("machine_instructions")
+          .update({
+            title: instructionForm.title.trim(),
+            content: instructionForm.content.trim(),
+          })
+          .eq("id", editingInstruction.id);
+
+        if (error) throw error;
+
+        toast({
+          title: "Instruction Updated",
+          description: "Changes saved successfully",
+        });
+      } else {
+        // Create new instruction
+        const maxStepNumber = instructions.reduce((max, i) => Math.max(max, i.step_number), 0);
+        
+        const { error } = await supabase
+          .from("machine_instructions")
+          .insert({
+            machine_id: machineId,
+            title: instructionForm.title.trim(),
+            content: instructionForm.content.trim(),
+            step_number: maxStepNumber + 1,
+          });
+
+        if (error) throw error;
+
+        toast({
+          title: "Instruction Added",
+          description: "New instruction step created",
+        });
+      }
+
+      setInstructionDialogOpen(false);
+      fetchData();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save instruction",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingInstruction(false);
+    }
+  };
+
+  const handleDeleteInstruction = async (instructionId: string) => {
+    const { error } = await supabase
+      .from("machine_instructions")
+      .delete()
+      .eq("id", instructionId);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete instruction",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Deleted",
+        description: "Instruction removed",
+      });
+      fetchData();
+    }
+  };
+
   const getSeverityColor = (severity: string) => {
     switch (severity) {
       case "critical":
@@ -567,28 +676,55 @@ export default function AdminWarnings() {
           </TabsContent>
 
           <TabsContent value="instructions" className="space-y-6">
-            <Button
-              onClick={handleGenerateInstructions}
-              disabled={generating !== null}
-            >
-              {generating === "instructions" ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Sparkles className="h-4 w-4 mr-2" />
-              )}
-              Generate Instructions
-            </Button>
+            <div className="flex gap-4 flex-wrap">
+              <Button onClick={openAddInstructionDialog}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Instruction
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleGenerateInstructions}
+                disabled={generating !== null}
+              >
+                {generating === "instructions" ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Sparkles className="h-4 w-4 mr-2" />
+                )}
+                Generate with AI
+              </Button>
+            </div>
 
             {instructions.length > 0 ? (
               <div className="space-y-4">
                 {instructions.map((inst) => (
                   <Card key={inst.id}>
                     <CardHeader className="pb-2">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm">
-                          {inst.step_number}
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm">
+                            {inst.step_number}
+                          </div>
+                          <CardTitle className="text-lg">{inst.title}</CardTitle>
                         </div>
-                        <CardTitle className="text-lg">{inst.title}</CardTitle>
+                        <div className="flex gap-2">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => openEditInstructionDialog(inst)}
+                            title="Edit"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => handleDeleteInstruction(inst.id)}
+                            title="Delete"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     </CardHeader>
                     <CardContent>
@@ -602,7 +738,7 @@ export default function AdminWarnings() {
             ) : (
               <div className="text-center py-12 text-muted-foreground">
                 <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No instructions yet. Generate some using AI!</p>
+                <p>No instructions yet. Add one manually or generate with AI!</p>
               </div>
             )}
           </TabsContent>
@@ -685,6 +821,69 @@ export default function AdminWarnings() {
                     "Save Changes"
                   ) : (
                     "Add Warning"
+                  )}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Add/Edit Instruction Dialog */}
+        <Dialog open={instructionDialogOpen} onOpenChange={setInstructionDialogOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="text-2xl">
+                {editingInstruction ? "Edit Instruction" : "Add Instruction"}
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-4 mt-4">
+              <div className="space-y-2">
+                <Label className="text-lg">Title</Label>
+                <Input
+                  value={instructionForm.title}
+                  onChange={(e) =>
+                    setInstructionForm({ ...instructionForm, title: e.target.value })
+                  }
+                  placeholder="Instruction title..."
+                  className="input-industrial"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-lg">Content</Label>
+                <Textarea
+                  value={instructionForm.content}
+                  onChange={(e) =>
+                    setInstructionForm({ ...instructionForm, content: e.target.value })
+                  }
+                  placeholder="Describe this step in detail..."
+                  className="min-h-[120px]"
+                />
+              </div>
+
+              <div className="flex gap-4 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setInstructionDialogOpen(false)}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSaveInstruction}
+                  disabled={savingInstruction}
+                  className="flex-1"
+                >
+                  {savingInstruction ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : editingInstruction ? (
+                    "Save Changes"
+                  ) : (
+                    "Add Instruction"
                   )}
                 </Button>
               </div>
