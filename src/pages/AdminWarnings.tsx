@@ -5,6 +5,22 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -16,6 +32,8 @@ import {
   Loader2,
   Sparkles,
   BookOpen,
+  Plus,
+  Pencil,
 } from "lucide-react";
 
 interface Machine {
@@ -42,6 +60,13 @@ interface Instruction {
   content: string;
 }
 
+const severityOptions = [
+  { value: "low", label: "Low" },
+  { value: "medium", label: "Medium" },
+  { value: "high", label: "High" },
+  { value: "critical", label: "Critical" },
+];
+
 export default function AdminWarnings() {
   const { machineId } = useParams<{ machineId: string }>();
   const { user, profile, isAdmin, loading } = useAuth();
@@ -53,6 +78,16 @@ export default function AdminWarnings() {
   const [instructions, setInstructions] = useState<Instruction[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [generating, setGenerating] = useState<"instructions" | "warnings" | null>(null);
+  
+  // Warning form state
+  const [warningDialogOpen, setWarningDialogOpen] = useState(false);
+  const [editingWarning, setEditingWarning] = useState<Warning | null>(null);
+  const [warningForm, setWarningForm] = useState({
+    title: "",
+    content: "",
+    severity: "medium",
+  });
+  const [savingWarning, setSavingWarning] = useState(false);
 
   useEffect(() => {
     if (!loading) {
@@ -245,6 +280,91 @@ export default function AdminWarnings() {
     }
   };
 
+  const openAddWarningDialog = () => {
+    setEditingWarning(null);
+    setWarningForm({ title: "", content: "", severity: "medium" });
+    setWarningDialogOpen(true);
+  };
+
+  const openEditWarningDialog = (warning: Warning) => {
+    setEditingWarning(warning);
+    setWarningForm({
+      title: warning.title,
+      content: warning.content,
+      severity: warning.severity,
+    });
+    setWarningDialogOpen(true);
+  };
+
+  const handleSaveWarning = async () => {
+    if (!machineId || !user) return;
+    if (!warningForm.title.trim() || !warningForm.content.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Title and content are required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSavingWarning(true);
+
+    try {
+      if (editingWarning) {
+        // Update existing warning
+        const { error } = await supabase
+          .from("machine_warnings")
+          .update({
+            title: warningForm.title.trim(),
+            content: warningForm.content.trim(),
+            severity: warningForm.severity,
+          })
+          .eq("id", editingWarning.id);
+
+        if (error) throw error;
+
+        toast({
+          title: "Warning Updated",
+          description: "Changes saved successfully",
+        });
+      } else {
+        // Create new warning
+        const maxOrderIndex = warnings.reduce((max, w) => Math.max(max, w.order_index), -1);
+        
+        const { error } = await supabase
+          .from("machine_warnings")
+          .insert({
+            machine_id: machineId,
+            title: warningForm.title.trim(),
+            content: warningForm.content.trim(),
+            severity: warningForm.severity,
+            order_index: maxOrderIndex + 1,
+            is_approved: true, // Manual warnings are auto-approved
+            approved_by: user.id,
+            approved_at: new Date().toISOString(),
+          });
+
+        if (error) throw error;
+
+        toast({
+          title: "Warning Added",
+          description: "New warning created and published",
+        });
+      }
+
+      setWarningDialogOpen(false);
+      fetchData();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save warning",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingWarning(false);
+    }
+  };
+
   const getSeverityColor = (severity: string) => {
     switch (severity) {
       case "critical":
@@ -305,8 +425,13 @@ export default function AdminWarnings() {
           </TabsList>
 
           <TabsContent value="warnings" className="space-y-6">
-            <div className="flex gap-4">
+            <div className="flex gap-4 flex-wrap">
+              <Button onClick={openAddWarningDialog}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Warning
+              </Button>
               <Button
+                variant="outline"
                 onClick={handleGenerateWarnings}
                 disabled={generating !== null}
               >
@@ -315,7 +440,7 @@ export default function AdminWarnings() {
                 ) : (
                   <Sparkles className="h-4 w-4 mr-2" />
                 )}
-                Generate Warnings
+                Generate with AI
               </Button>
               {pendingWarnings.length > 0 && (
                 <Button variant="outline" onClick={handleApproveAll}>
@@ -345,6 +470,14 @@ export default function AdminWarnings() {
                             </CardTitle>
                           </div>
                           <div className="flex gap-2">
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              onClick={() => openEditWarningDialog(warning)}
+                              title="Edit"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
                             <Button
                               size="icon"
                               variant="outline"
@@ -394,14 +527,24 @@ export default function AdminWarnings() {
                               {warning.title}
                             </CardTitle>
                           </div>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => handleRejectWarning(warning.id)}
-                            title="Delete"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => openEditWarningDialog(warning)}
+                              title="Edit"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => handleRejectWarning(warning.id)}
+                              title="Delete"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                       </CardHeader>
                       <CardContent>
@@ -418,7 +561,7 @@ export default function AdminWarnings() {
             {warnings.length === 0 && (
               <div className="text-center py-12 text-muted-foreground">
                 <AlertTriangle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No warnings yet. Generate some using AI!</p>
+                <p>No warnings yet. Add one manually or generate with AI!</p>
               </div>
             )}
           </TabsContent>
@@ -464,6 +607,90 @@ export default function AdminWarnings() {
             )}
           </TabsContent>
         </Tabs>
+
+        {/* Add/Edit Warning Dialog */}
+        <Dialog open={warningDialogOpen} onOpenChange={setWarningDialogOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="text-2xl">
+                {editingWarning ? "Edit Warning" : "Add Warning"}
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-4 mt-4">
+              <div className="space-y-2">
+                <Label className="text-lg">Title</Label>
+                <Input
+                  value={warningForm.title}
+                  onChange={(e) =>
+                    setWarningForm({ ...warningForm, title: e.target.value })
+                  }
+                  placeholder="Warning title..."
+                  className="input-industrial"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-lg">Severity</Label>
+                <Select
+                  value={warningForm.severity}
+                  onValueChange={(value) =>
+                    setWarningForm({ ...warningForm, severity: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {severityOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-lg">Content</Label>
+                <Textarea
+                  value={warningForm.content}
+                  onChange={(e) =>
+                    setWarningForm({ ...warningForm, content: e.target.value })
+                  }
+                  placeholder="Describe the warning in detail..."
+                  className="min-h-[120px]"
+                />
+              </div>
+
+              <div className="flex gap-4 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setWarningDialogOpen(false)}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSaveWarning}
+                  disabled={savingWarning}
+                  className="flex-1"
+                >
+                  {savingWarning ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : editingWarning ? (
+                    "Save Changes"
+                  ) : (
+                    "Add Warning"
+                  )}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );
