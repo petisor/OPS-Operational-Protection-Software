@@ -286,20 +286,11 @@ export default function Dashboard() {
                 <Button
                   onClick={() => navigate(`/learn/${selectedMachine.id}`)}
                   size="lg"
-                  variant="outline"
+                  variant="default"
                   className="flex-1 uppercase font-black tracking-wide"
                 >
                   <BookOpen className="mr-2 h-5 w-5" />
                   {t("dashboard.learn")}
-                </Button>
-                <Button
-                  onClick={handleStartInspection}
-                  size="lg"
-                  variant="default"
-                  className="flex-1 uppercase font-black tracking-wide"
-                >
-                  {t("dashboard.quickInspection")}
-                  <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </div>
             )}
