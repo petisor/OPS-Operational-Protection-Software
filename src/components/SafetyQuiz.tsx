@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, XCircle, AlertOctagon } from "lucide-react";
+import { CheckCircle, XCircle, AlertOctagon, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslateContentBatch } from "@/hooks/useTranslateContent";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface Question {
   id: string;
@@ -18,6 +20,7 @@ interface SafetyQuizProps {
 }
 
 export function SafetyQuiz({ questions, onComplete, onFail, questionCount }: SafetyQuizProps) {
+  const { t } = useLanguage();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
   const [shuffledQuestions, setShuffledQuestions] = useState<Question[]>([]);
@@ -37,15 +40,22 @@ export function SafetyQuiz({ questions, onComplete, onFail, questionCount }: Saf
       .slice(0, questionCount || questions.length);
     setShuffledQuestions(shuffled);
   }
+
+  // Translate questions
+  const { items: translatedQuestions, isTranslating } = useTranslateContentBatch(
+    shuffledQuestions,
+    ["question"]
+  );
   
-  const currentQuestion = shuffledQuestions[currentIndex];
+  const currentQuestion = translatedQuestions[currentIndex];
+  const originalQuestion = shuffledQuestions[currentIndex];
   const totalQuestions = shuffledQuestions.length;
   const progress = totalQuestions > 0 ? ((currentIndex + 1) / totalQuestions) * 100 : 0;
 
   const handleAnswer = (answeredYes: boolean) => {
-    if (!currentQuestion) return;
+    if (!originalQuestion) return;
     
-    const isCorrect = answeredYes === currentQuestion.correct_answer;
+    const isCorrect = answeredYes === originalQuestion.correct_answer;
     
     if (!isCorrect) {
       // Wrong answer - fail immediately, pass current correct count
@@ -69,7 +79,7 @@ export function SafetyQuiz({ questions, onComplete, onFail, questionCount }: Saf
     return (
       <div className="max-w-2xl mx-auto px-4 animate-fade-in">
         <div className="text-center py-12">
-          <p className="text-lg text-muted-foreground">Loading questions...</p>
+          <p className="text-lg text-muted-foreground">{t("common.loading")}</p>
         </div>
       </div>
     );
@@ -99,13 +109,18 @@ export function SafetyQuiz({ questions, onComplete, onFail, questionCount }: Saf
       <div className="card-industrial p-8 mb-8">
         <div className="flex items-start gap-4 mb-6">
           <AlertOctagon className="h-10 w-10 text-warning shrink-0" />
-          <h2 className="text-2xl md:text-3xl font-bold leading-tight">
-            {currentQuestion?.question}
-          </h2>
+          <div className="flex-1">
+            {isTranslating && (
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mb-2" />
+            )}
+            <h2 className="text-2xl md:text-3xl font-bold leading-tight">
+              {currentQuestion?.question}
+            </h2>
+          </div>
         </div>
 
         <p className="text-muted-foreground text-lg">
-          Carefully inspect the equipment and answer honestly.
+          {t("quiz.inspectCarefully")}
         </p>
       </div>
 

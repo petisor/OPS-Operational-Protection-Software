@@ -130,6 +130,7 @@ const translations: Record<Language, Record<string, string>> = {
     "quiz.incorrect": "Incorrect",
     "quiz.passed": "Passed",
     "quiz.failed": "Failed",
+    "quiz.inspectCarefully": "Carefully inspect the equipment and answer honestly.",
     
     // Auth
     "auth.signIn": "Sign In",
@@ -164,6 +165,17 @@ const translations: Record<Language, Record<string, string>> = {
     "failed.subtitle": "Safety Check Failed",
     "failed.message": "You have not passed the safety quiz. Please review the safety materials and try again.",
     "failed.returnDashboard": "Return to Dashboard",
+    "doNotOperate.failedInspection": "has failed the safety inspection",
+    "doNotOperate.requiredAction": "Required Action",
+    "doNotOperate.tagEquipment": "Tag the equipment as UNSAFE",
+    "doNotOperate.reportSupervisor": "Report to your supervisor immediately",
+    "doNotOperate.doNotUse": "Do not attempt to use this equipment",
+    "doNotOperate.documentIssue": "Document the specific issue found",
+    
+    // Safety Modal
+    "safetyModal.criticalWarning": "Critical Safety Warning",
+    "safetyModal.commonInjury": "MOST COMMON INJURY",
+    "safetyModal.acknowledge": "I ACKNOWLEDGE",
     
     // Chat
     "chat.title": "Live Assistance",
@@ -292,6 +304,7 @@ const translations: Record<Language, Record<string, string>> = {
     "quiz.incorrect": "Onjuist",
     "quiz.passed": "Geslaagd",
     "quiz.failed": "Niet Geslaagd",
+    "quiz.inspectCarefully": "Inspecteer de apparatuur zorgvuldig en beantwoord eerlijk.",
     
     // Auth
     "auth.signIn": "Inloggen",
@@ -326,6 +339,17 @@ const translations: Record<Language, Record<string, string>> = {
     "failed.subtitle": "Veiligheidscontrole Mislukt",
     "failed.message": "U bent niet geslaagd voor de veiligheidsquiz. Bekijk de veiligheidsmaterialen en probeer het opnieuw.",
     "failed.returnDashboard": "Terug naar Dashboard",
+    "doNotOperate.failedInspection": "is gezakt voor de veiligheidsinspectie",
+    "doNotOperate.requiredAction": "Vereiste Actie",
+    "doNotOperate.tagEquipment": "Label de apparatuur als ONVEILIG",
+    "doNotOperate.reportSupervisor": "Meld dit onmiddellijk aan uw leidinggevende",
+    "doNotOperate.doNotUse": "Probeer deze apparatuur niet te gebruiken",
+    "doNotOperate.documentIssue": "Documenteer het specifieke probleem",
+    
+    // Safety Modal
+    "safetyModal.criticalWarning": "Kritische Veiligheidswaarschuwing",
+    "safetyModal.commonInjury": "MEEST VOORKOMENDE VERWONDING",
+    "safetyModal.acknowledge": "IK ERKEN",
     
     // Chat
     "chat.title": "Live Assistentie",
@@ -454,6 +478,7 @@ const translations: Record<Language, Record<string, string>> = {
     "quiz.incorrect": "Incorect",
     "quiz.passed": "Trecut",
     "quiz.failed": "Eșuat",
+    "quiz.inspectCarefully": "Inspectați cu atenție echipamentul și răspundeți sincer.",
     
     // Auth
     "auth.signIn": "Autentificare",
@@ -488,6 +513,17 @@ const translations: Record<Language, Record<string, string>> = {
     "failed.subtitle": "Verificare de Siguranță Eșuată",
     "failed.message": "Nu ați trecut chestionarul de siguranță. Revizuiți materialele de siguranță și încercați din nou.",
     "failed.returnDashboard": "Înapoi la Panou",
+    "doNotOperate.failedInspection": "a eșuat inspecția de siguranță",
+    "doNotOperate.requiredAction": "Acțiune Necesară",
+    "doNotOperate.tagEquipment": "Etichetați echipamentul ca NESIGUR",
+    "doNotOperate.reportSupervisor": "Raportați imediat supervizorului",
+    "doNotOperate.doNotUse": "Nu încercați să utilizați acest echipament",
+    "doNotOperate.documentIssue": "Documentați problema specifică găsită",
+    
+    // Safety Modal
+    "safetyModal.criticalWarning": "Avertisment Critic de Siguranță",
+    "safetyModal.commonInjury": "CEA MAI FRECVENTĂ ACCIDENTARE",
+    "safetyModal.acknowledge": "CONFIRM",
     
     // Chat
     "chat.title": "Asistență Live",
@@ -616,6 +652,7 @@ const translations: Record<Language, Record<string, string>> = {
     "quiz.incorrect": "Incorrecto",
     "quiz.passed": "Aprobado",
     "quiz.failed": "Reprobado",
+    "quiz.inspectCarefully": "Inspeccione cuidadosamente el equipo y responda con honestidad.",
     
     // Auth
     "auth.signIn": "Iniciar Sesión",
@@ -650,6 +687,17 @@ const translations: Record<Language, Record<string, string>> = {
     "failed.subtitle": "Verificación de Seguridad Fallida",
     "failed.message": "No ha aprobado el cuestionario de seguridad. Revise los materiales de seguridad e intente de nuevo.",
     "failed.returnDashboard": "Volver al Panel",
+    "doNotOperate.failedInspection": "ha fallado la inspección de seguridad",
+    "doNotOperate.requiredAction": "Acción Requerida",
+    "doNotOperate.tagEquipment": "Etiquete el equipo como INSEGURO",
+    "doNotOperate.reportSupervisor": "Informe a su supervisor inmediatamente",
+    "doNotOperate.doNotUse": "No intente usar este equipo",
+    "doNotOperate.documentIssue": "Documente el problema específico encontrado",
+    
+    // Safety Modal
+    "safetyModal.criticalWarning": "Advertencia de Seguridad Crítica",
+    "safetyModal.commonInjury": "LESIÓN MÁS COMÚN",
+    "safetyModal.acknowledge": "RECONOZCO",
     
     // Chat
     "chat.title": "Asistencia en Vivo",
@@ -778,6 +826,7 @@ const translations: Record<Language, Record<string, string>> = {
     "quiz.incorrect": "Falsch",
     "quiz.passed": "Bestanden",
     "quiz.failed": "Nicht Bestanden",
+    "quiz.inspectCarefully": "Überprüfen Sie die Ausrüstung sorgfältig und antworten Sie ehrlich.",
     
     // Auth
     "auth.signIn": "Anmelden",
@@ -812,6 +861,17 @@ const translations: Record<Language, Record<string, string>> = {
     "failed.subtitle": "Sicherheitsüberprüfung Fehlgeschlagen",
     "failed.message": "Sie haben das Sicherheitsquiz nicht bestanden. Überprüfen Sie die Sicherheitsmaterialien und versuchen Sie es erneut.",
     "failed.returnDashboard": "Zurück zum Dashboard",
+    "doNotOperate.failedInspection": "hat die Sicherheitsinspektion nicht bestanden",
+    "doNotOperate.requiredAction": "Erforderliche Maßnahme",
+    "doNotOperate.tagEquipment": "Kennzeichnen Sie die Ausrüstung als UNSICHER",
+    "doNotOperate.reportSupervisor": "Melden Sie dies sofort Ihrem Vorgesetzten",
+    "doNotOperate.doNotUse": "Versuchen Sie nicht, diese Ausrüstung zu verwenden",
+    "doNotOperate.documentIssue": "Dokumentieren Sie das gefundene Problem",
+    
+    // Safety Modal
+    "safetyModal.criticalWarning": "Kritische Sicherheitswarnung",
+    "safetyModal.commonInjury": "HÄUFIGSTE VERLETZUNG",
+    "safetyModal.acknowledge": "ICH BESTÄTIGE",
     
     // Chat
     "chat.title": "Live-Unterstützung",

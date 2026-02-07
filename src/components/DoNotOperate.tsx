@@ -1,5 +1,6 @@
 import { XOctagon, AlertTriangle, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface DoNotOperateProps {
   machineName: string;
@@ -7,6 +8,8 @@ interface DoNotOperateProps {
 }
 
 export function DoNotOperate({ machineName, onBackToDashboard }: DoNotOperateProps) {
+  const { t } = useLanguage();
+  
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-destructive/10">
       <div className="max-w-lg w-full text-center animate-fade-in">
@@ -21,11 +24,11 @@ export function DoNotOperate({ machineName, onBackToDashboard }: DoNotOperatePro
 
         {/* Warning Message */}
         <h1 className="text-3xl md:text-4xl font-black text-destructive mb-4 uppercase">
-          Do Not Operate
+          {t("failed.title")}
         </h1>
 
         <p className="text-xl text-muted-foreground mb-8">
-          <span className="font-bold">{machineName}</span> has failed the safety inspection
+          <span className="font-bold">{machineName}</span> {t("doNotOperate.failedInspection")}
         </p>
 
         {/* Instructions */}
@@ -34,13 +37,13 @@ export function DoNotOperate({ machineName, onBackToDashboard }: DoNotOperatePro
             <AlertTriangle className="h-8 w-8 text-destructive shrink-0" />
             <div>
               <h3 className="text-lg font-bold text-destructive mb-2 uppercase">
-                Required Action
+                {t("doNotOperate.requiredAction")}
               </h3>
               <ul className="space-y-2 text-lg">
-                <li>• Tag the equipment as UNSAFE</li>
-                <li>• Report to your supervisor immediately</li>
-                <li>• Do not attempt to use this equipment</li>
-                <li>• Document the specific issue found</li>
+                <li>• {t("doNotOperate.tagEquipment")}</li>
+                <li>• {t("doNotOperate.reportSupervisor")}</li>
+                <li>• {t("doNotOperate.doNotUse")}</li>
+                <li>• {t("doNotOperate.documentIssue")}</li>
               </ul>
             </div>
           </div>
@@ -53,7 +56,7 @@ export function DoNotOperate({ machineName, onBackToDashboard }: DoNotOperatePro
           className="uppercase font-bold"
         >
           <ArrowLeft className="h-5 w-5 mr-2" />
-          Return to Dashboard
+          {t("failed.returnDashboard")}
         </Button>
       </div>
     </div>
