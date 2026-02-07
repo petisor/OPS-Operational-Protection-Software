@@ -8,7 +8,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { ArrowLeft, Send, Bot, User, Loader2 } from "lucide-react";
+import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
+import { ArrowLeft, Send, Bot, User, Loader2, Mic, MicOff } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface Machine {
   id: string;
@@ -27,6 +29,7 @@ export default function MachineChat() {
   const { user, profile, isAdmin, loading } = useAuth();
   const navigate = useNavigate();
   const { t, language } = useLanguage();
+  const { toast } = useToast();
 
   const [machine, setMachine] = useState<Machine | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -34,6 +37,20 @@ export default function MachineChat() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  // Voice recorder hook
+  const { isRecording, isTranscribing, toggleRecording } = useVoiceRecorder({
+    onTranscription: (text) => {
+      setInputValue((prev) => (prev ? `${prev} ${text}` : text));
+    },
+    onError: (error) => {
+      toast({
+        title: t("chat.voiceError"),
+        description: error,
+        variant: "destructive",
+      });
+    },
+  });
 
   useEffect(() => {
     if (!loading && !user) {
@@ -258,17 +275,33 @@ export default function MachineChat() {
 
           <div className="p-4 border-t">
             <div className="flex gap-2">
+              <Button
+                variant={isRecording ? "destructive" : "outline"}
+                size="icon"
+                onClick={toggleRecording}
+                disabled={isStreaming || isTranscribing}
+                className="shrink-0"
+                title={isRecording ? t("chat.stopRecording") : t("chat.startRecording")}
+              >
+                {isTranscribing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : isRecording ? (
+                  <MicOff className="h-4 w-4" />
+                ) : (
+                  <Mic className="h-4 w-4" />
+                )}
+              </Button>
               <Input
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder={t("chat.placeholder")}
-                disabled={isStreaming}
+                placeholder={isRecording ? t("chat.recording") : t("chat.placeholder")}
+                disabled={isStreaming || isRecording}
                 className="flex-1"
               />
               <Button
                 onClick={handleSend}
-                disabled={!inputValue.trim() || isStreaming}
+                disabled={!inputValue.trim() || isStreaming || isRecording}
               >
                 {isStreaming ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -277,6 +310,12 @@ export default function MachineChat() {
                 )}
               </Button>
             </div>
+            {isRecording && (
+              <p className="text-sm text-destructive mt-2 flex items-center gap-2">
+                <span className="w-2 h-2 bg-destructive rounded-full animate-pulse" />
+                {t("chat.recordingInProgress")}
+              </p>
+            )}
           </div>
         </Card>
       </main>

@@ -184,6 +184,11 @@ const translations: Record<Language, Record<string, string>> = {
     "chat.thinking": "Thinking...",
     "chat.greeting": "Hello! I'm your AI assistant for",
     "chat.greetingEnd": "How can I help you today?",
+    "chat.startRecording": "Start voice recording",
+    "chat.stopRecording": "Stop recording",
+    "chat.recording": "Recording... Click mic to stop",
+    "chat.recordingInProgress": "Recording in progress...",
+    "chat.voiceError": "Voice Recording Error",
     
     // Admin
     "admin.title": "Admin Panel",
@@ -358,6 +363,11 @@ const translations: Record<Language, Record<string, string>> = {
     "chat.thinking": "Nadenken...",
     "chat.greeting": "Hallo! Ik ben uw AI-assistent voor",
     "chat.greetingEnd": "Hoe kan ik u vandaag helpen?",
+    "chat.startRecording": "Start spraakopname",
+    "chat.stopRecording": "Stop opname",
+    "chat.recording": "Opnemen... Klik op mic om te stoppen",
+    "chat.recordingInProgress": "Opname bezig...",
+    "chat.voiceError": "Spraakopname Fout",
     
     // Admin
     "admin.title": "Beheerpaneel",
@@ -532,6 +542,11 @@ const translations: Record<Language, Record<string, string>> = {
     "chat.thinking": "Se gândește...",
     "chat.greeting": "Bună! Sunt asistentul dvs. AI pentru",
     "chat.greetingEnd": "Cum vă pot ajuta astăzi?",
+    "chat.startRecording": "Începe înregistrarea vocală",
+    "chat.stopRecording": "Oprește înregistrarea",
+    "chat.recording": "Se înregistrează... Apăsați pe mic pentru a opri",
+    "chat.recordingInProgress": "Înregistrare în curs...",
+    "chat.voiceError": "Eroare Înregistrare Vocală",
     
     // Admin
     "admin.title": "Panou de Administrare",
@@ -706,6 +721,11 @@ const translations: Record<Language, Record<string, string>> = {
     "chat.thinking": "Pensando...",
     "chat.greeting": "¡Hola! Soy su asistente de IA para",
     "chat.greetingEnd": "¿Cómo puedo ayudarle hoy?",
+    "chat.startRecording": "Iniciar grabación de voz",
+    "chat.stopRecording": "Detener grabación",
+    "chat.recording": "Grabando... Haga clic en el micrófono para detener",
+    "chat.recordingInProgress": "Grabación en progreso...",
+    "chat.voiceError": "Error de Grabación de Voz",
     
     // Admin
     "admin.title": "Panel de Administración",
@@ -880,6 +900,11 @@ const translations: Record<Language, Record<string, string>> = {
     "chat.thinking": "Denkt nach...",
     "chat.greeting": "Hallo! Ich bin Ihr KI-Assistent für",
     "chat.greetingEnd": "Wie kann ich Ihnen heute helfen?",
+    "chat.startRecording": "Sprachaufnahme starten",
+    "chat.stopRecording": "Aufnahme beenden",
+    "chat.recording": "Aufnahme... Klicken Sie auf das Mikrofon zum Stoppen",
+    "chat.recordingInProgress": "Aufnahme läuft...",
+    "chat.voiceError": "Sprachaufnahme Fehler",
     
     // Admin
     "admin.title": "Admin-Bereich",
