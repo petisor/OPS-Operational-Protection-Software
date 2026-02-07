@@ -1,4 +1,5 @@
 import { User, Settings, LogOut, Shield, ChevronDown } from "lucide-react";
+import logoImage from "@/assets/logo.jpeg";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -39,15 +40,7 @@ export function Navbar({ userName = "Worker", isAdmin = false }: NavbarProps) {
   return (
     <nav className="nav-industrial">
       <div className="flex items-center gap-3">
-        <Shield className="h-8 w-8 md:h-10 md:w-10 text-primary" />
-        <div className="flex flex-col">
-          <span className="text-xl md:text-2xl font-black tracking-tight leading-none">
-            OPS
-          </span>
-          <span className="text-xs text-muted-foreground hidden md:block">
-            Operation Protection Software
-          </span>
-        </div>
+        <img src={logoImage} alt="OPS Logo" className="h-10 w-auto md:h-12" />
       </div>
 
       <div className="flex items-center gap-2">
