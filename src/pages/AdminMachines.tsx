@@ -21,6 +21,7 @@ import {
   Construction,
   Tractor,
   Settings,
+  BookOpen,
 } from "lucide-react";
 import {
   Dialog,
@@ -337,6 +338,14 @@ export default function AdminMachines() {
                       title="QR Code"
                     >
                       <QrCode className="h-5 w-5" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => navigate(`/admin/machines/${machine.id}/content`)}
+                      title="Manage Content"
+                    >
+                      <BookOpen className="h-5 w-5" />
                     </Button>
                     <Button
                       variant="outline"

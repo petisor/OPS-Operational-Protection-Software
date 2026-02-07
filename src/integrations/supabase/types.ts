@@ -87,6 +87,94 @@ export type Database = {
           },
         ]
       }
+      machine_instructions: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          machine_id: string
+          step_number: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          machine_id: string
+          step_number?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          machine_id?: string
+          step_number?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "machine_instructions_machine_id_fkey"
+            columns: ["machine_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      machine_warnings: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          content: string
+          created_at: string
+          id: string
+          is_approved: boolean
+          machine_id: string
+          order_index: number
+          severity: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          content: string
+          created_at?: string
+          id?: string
+          is_approved?: boolean
+          machine_id: string
+          order_index?: number
+          severity?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          is_approved?: boolean
+          machine_id?: string
+          order_index?: number
+          severity?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "machine_warnings_machine_id_fkey"
+            columns: ["machine_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       machines: {
         Row: {
           common_injury: string
@@ -235,6 +323,53 @@ export type Database = {
           },
         ]
       }
+      user_learning_progress: {
+        Row: {
+          created_at: string
+          id: string
+          instructions_completed: boolean
+          instructions_completed_at: string | null
+          machine_id: string
+          quiz_unlocked: boolean
+          updated_at: string
+          user_id: string
+          warnings_completed: boolean
+          warnings_completed_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          instructions_completed?: boolean
+          instructions_completed_at?: string | null
+          machine_id: string
+          quiz_unlocked?: boolean
+          updated_at?: string
+          user_id: string
+          warnings_completed?: boolean
+          warnings_completed_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          instructions_completed?: boolean
+          instructions_completed_at?: string | null
+          machine_id?: string
+          quiz_unlocked?: boolean
+          updated_at?: string
+          user_id?: string
+          warnings_completed?: boolean
+          warnings_completed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_learning_progress_machine_id_fkey"
+            columns: ["machine_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -252,6 +387,44 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_warning_acknowledgments: {
+        Row: {
+          acknowledged_at: string | null
+          created_at: string
+          id: string
+          liability_acknowledged: boolean
+          read_acknowledged: boolean
+          user_id: string
+          warning_id: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          created_at?: string
+          id?: string
+          liability_acknowledged?: boolean
+          read_acknowledged?: boolean
+          user_id: string
+          warning_id: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          created_at?: string
+          id?: string
+          liability_acknowledged?: boolean
+          read_acknowledged?: boolean
+          user_id?: string
+          warning_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_warning_acknowledgments_warning_id_fkey"
+            columns: ["warning_id"]
+            isOneToOne: false
+            referencedRelation: "machine_warnings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

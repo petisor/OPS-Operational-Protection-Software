@@ -13,6 +13,12 @@ import AdminMachines from "./pages/AdminMachines";
 import AdminUpload from "./pages/AdminUpload";
 import AdminEmployees from "./pages/AdminEmployees";
 import InspectMachine from "./pages/InspectMachine";
+import LearningEnvironment from "./pages/LearningEnvironment";
+import MachineInstructions from "./pages/MachineInstructions";
+import MachineWarnings from "./pages/MachineWarnings";
+import MachineLearningQuiz from "./pages/MachineLearningQuiz";
+import MachineChat from "./pages/MachineChat";
+import AdminWarnings from "./pages/AdminWarnings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,7 +39,13 @@ const App = () => (
             <Route path="/admin/machines" element={<AdminMachines />} />
             <Route path="/admin/upload" element={<AdminUpload />} />
             <Route path="/admin/employees" element={<AdminEmployees />} />
+            <Route path="/admin/machines/:machineId/content" element={<AdminWarnings />} />
             <Route path="/inspect/:machineId" element={<InspectMachine />} />
+            <Route path="/learn/:machineId" element={<LearningEnvironment />} />
+            <Route path="/learn/:machineId/instructions" element={<MachineInstructions />} />
+            <Route path="/learn/:machineId/warnings" element={<MachineWarnings />} />
+            <Route path="/learn/:machineId/quiz" element={<MachineLearningQuiz />} />
+            <Route path="/learn/:machineId/chat" element={<MachineChat />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
