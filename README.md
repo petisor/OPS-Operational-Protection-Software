@@ -1,73 +1,84 @@
-# Welcome to your Lovable project
+# OPS — Operational Protection Software
 
-## Project info
+> Built at the Polderr Hackathon, February 2025 · 12 hours · Team of 3
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+OPS is a safety training web platform designed for construction machinery operators. It transforms dense, hard-to-navigate technical manuals into an interactive learning environment — accessible on-site, under time pressure, and without requiring any technical background.
 
-## How can I edit this code?
+The core insight behind the design: operators aren't tech-illiterate, they're time-starved. A 300-page PDF is not a usable safety tool on a loud construction site. OPS is.
 
-There are several ways of editing your application.
+![OPS Dashboard — worker equipment selector and admin panel](dashboard.png)
 
-**Use Lovable**
+---
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## Features
 
-Changes made via Lovable will be committed automatically to this repo.
+### Worker Side
+- **AI Chatbot** — trained on the specific machine's manual; operators can ask questions in plain language and get instant, relevant answers
+- **Visual Guides** — AI-generated images of machine parts so operators know exactly what a component looks like before touching it
+- **Text-to-Speech** — every page can be read aloud, breaking literacy and language barriers
+- **Safety Warnings** — full-screen critical hazard alerts (e.g. Crushing Hazard) that must be explicitly acknowledged before proceeding
+- **Randomized Quizzes** — questions drawn from a bank of 30; designed to prevent autopilot clicking and enforce genuine recall
+- **QR Code Access** — every machine has a unique QR code that takes the operator directly to that machine's learning environment
+- **High-Contrast UI** — large buttons and readable typography designed for gloved hands, glare, and dusty screens
 
-**Use your preferred IDE**
+### Admin Side
+- **Compliance Dashboard** — see which workers are certified, which warnings have been acknowledged, and who is overdue
+- **Failure Analytics** — when a worker fails a quiz, admins see exactly which questions they struggled with, not just a total score
+- **Safety Refresh Intervals** — configurable recertification schedules per machine
+- **Worker Notifications** — automated reminders for incomplete or expiring certifications
+- **Machine Management** — upload manuals, add machines, and manage the full equipment registry
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+---
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## Tech Stack
 
-Follow these steps:
+| Layer | Technology |
+|---|---|
+| Frontend | React, TypeScript, Vite |
+| Styling | Tailwind CSS, shadcn/ui |
+| Backend & Auth | Supabase (PostgreSQL + Auth) |
+| AI | Claude API (Anthropic) |
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+---
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+## Getting Started
 
-# Step 3: Install the necessary dependencies.
-npm i
+```bash
+# Clone the repository
+git clone https://github.com/petisor/site-guardian.git
+cd site-guardian
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Install dependencies
+npm install
+
+# Set up environment variables
+cp .env.example .env
+# Add your Supabase and Anthropic API keys to .env
+
+# Start the development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+### Environment Variables
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+VITE_ANTHROPIC_API_KEY=your_anthropic_api_key
+```
 
-**Use GitHub Codespaces**
+---
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Background
 
-## What technologies are used for this project?
+This project was built in response to the Polderr Hackathon challenge: *rethink how technical information for construction machinery can be delivered in a way that truly supports operators in their daily work.*
 
-This project is built with:
+The construction industry faces a compounding problem — a shrinking skilled workforce, an influx of inexperienced workers, and safety information locked in formats that aren't usable in the field. OPS addresses this directly by meeting operators where they are: on their phone, next to the machine, with limited time and attention.
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+---
 
-## How can I deploy this project?
+## Team
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+- Maria Petercă
+- Andreas Baragau  
+- Stefan Mihai
