@@ -1,6 +1,6 @@
 # OPS — Operational Protection Software
 
-> Built at the Polderr Hackathon, February 2025 · 12 hours · Team of 3
+> Built at the Polderr Hackathon, February 2026 · 12 hours · Team of 3
 
 OPS is a safety training web platform designed for construction machinery operators. It transforms dense, hard-to-navigate technical manuals into an interactive learning environment — accessible on-site, under time pressure, and without requiring any technical background.
 
@@ -79,6 +79,6 @@ The construction industry faces a compounding problem — a shrinking skilled wo
 
 ## Team
 
-- Maria Petercă
+- Maria Aimee Peterca
 - Andreas Baragau  
 - Stefan Mihai
